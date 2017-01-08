@@ -20,6 +20,7 @@ from collections import defaultdict
 from urlparse import urlparse
 from lxml import html
 #import pdb
+from config import configs
 
 # for media upload
 import mimetypes
@@ -35,7 +36,6 @@ def catchKeyboardInterrupt(fn):
             logging.debug('[*] 强制退出程序')
     return wrapper
 
-
 def _decode_list(data):
     rv = []
     for item in data:
@@ -47,7 +47,6 @@ def _decode_list(data):
             item = _decode_dict(item)
         rv.append(item)
     return rv
-
 
 def _decode_dict(data):
     rv = {}
@@ -100,7 +99,7 @@ class WebWeixin(object):
         self.GroupMemeberList = []  # 群友
         self.PublicUsersList = []  # 公众号／服务号
         self.SpecialUsersList = []  # 特殊账号
-        self.autoReplyMode = False
+        self.autoReplyMode = True #False
         self.syncHost = ''
         self.user_agent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/48.0.2564.109 Safari/537.36'
         self.interactive = False
@@ -121,6 +120,7 @@ class WebWeixin(object):
         opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(self.cookie))
         opener.addheaders = [('User-agent', self.user_agent)]
         urllib2.install_opener(opener)
+        self.wxRobot = None
 
     def loadConfig(self, config):
         if config['DEBUG']:
@@ -333,6 +333,7 @@ class WebWeixin(object):
 
     def testsynccheck(self):
         SyncHost = [
+            'webpush.wx2.qq.com',
             'webpush.weixin.qq.com',
             #'webpush2.weixin.qq.com',
             'webpush.wechat.com',
@@ -611,6 +612,12 @@ class WebWeixin(object):
                         self.GroupMemeberList.append(member)
         return name
 
+    def getGroupId(self, name):
+        for member in self.GroupList:
+            if name == member['RemarkName'] or name == member['NickName']:
+                return member['UserName']
+        return None
+
     def getUserRemarkName(self, id):
         name = '未知群' if id[:2] == '@@' else '陌生人'
         if id == self.User['UserName']:
@@ -738,6 +745,9 @@ class WebWeixin(object):
                 print '[*] 该消息已储存到文件: ' + fn
                 logging.debug('[*] 该消息已储存到文件: %s' % (fn))
 
+            #invoke robot
+            self.wxRobot.handleMsg(self, msg)
+
             msgType = msg['MsgType']
             name = self.getUserRemarkName(msg['FromUserName'])
             content = msg['Content'].replace('&lt;', '<').replace('&gt;', '>')
@@ -746,14 +756,7 @@ class WebWeixin(object):
             if msgType == 1:
                 raw_msg = {'raw_msg': msg}
                 self._showMsg(raw_msg)
-                if self.autoReplyMode:
-                    ans = self._xiaodoubi(content) + '\n[微信机器人自动回复]'
-                    if self.webwxsendmsg(ans, msg['FromUserName']):
-                        print '自动回复: ' + ans
-                        logging.info('自动回复: ' + ans)
-                    else:
-                        print '自动回复失败'
-                        logging.info('自动回复失败')
+
             elif msgType == 3:
                 image = self.webwxgetmsgimg(msgid)
                 raw_msg = {'raw_msg': msg,
@@ -812,6 +815,9 @@ class WebWeixin(object):
                            'message': '%s 发了一段小视频: %s' % (name, video)}
                 self._showMsg(raw_msg)
                 self._safe_open(video)
+            elif msgType == 10000:
+                raw_msg = {'raw_msg': msg, 'message': '%s 系统消息' % name}
+                self._showMsg(raw_msg)
             elif msgType == 10002:
                 raw_msg = {'raw_msg': msg, 'message': '%s 撤回了一条消息' % name}
                 self._showMsg(raw_msg)
@@ -835,12 +841,12 @@ class WebWeixin(object):
                 print 'retcode: %s, selector: %s' % (retcode, selector)
             logging.debug('retcode: %s, selector: %s' % (retcode, selector))
             if retcode == '1100':
-                print '[*] 你在手机上登出了微信，债见'
-                logging.debug('[*] 你在手机上登出了微信，债见')
+                print '[*] 你在手机上登出了微信，再见'
+                logging.debug('[*] 你在手机上登出了微信，再见')
                 break
             if retcode == '1101':
-                print '[*] 你在其他地方登录了 WEB 版微信，债见'
-                logging.debug('[*] 你在其他地方登录了 WEB 版微信，债见')
+                print '[*] 你在其他地方登录了 WEB 版微信，再见'
+                logging.debug('[*] 你在其他地方登录了 WEB 版微信，再见')
                 break
             elif retcode == '0':
                 if selector == '2':
@@ -941,7 +947,9 @@ class WebWeixin(object):
                    (self.MemberCount, len(self.MemberList)))
         print
         self._echo('[*] 共有 %d 个群 | %d 个直接联系人 | %d 个特殊账号 ｜ %d 公众号或服务号' % (len(self.GroupList),
-                                                                         len(self.ContactList), len(self.SpecialUsersList), len(self.PublicUsersList)))
+                                                                         len(self.ContactList),
+                                                                         len(self.SpecialUsersList),
+                                                                         len(self.PublicUsersList)))
         print
         self._run('[*] 获取群 ... ', self.webwxbatchgetcontact)
         logging.debug('[*] 微信网页版 ... 开动')
@@ -994,6 +1002,86 @@ class WebWeixin(object):
                 self.sendEmotion(name, file_name)
                 logging.debug('发送表情')
 
+    def start2(self, wxRobot):
+        self.wxRobot = wxRobot
+        self._echo('[*] 微信网页版 ... 开动')
+        print
+        logging.debug('[*] 微信网页版 ... 开动')
+        while True:
+            if self._waitWxLogin():
+                break
+        self._doWxLogin()
+
+        if sys.platform.startswith('win'):
+            import thread
+            thread.start_new_thread(self.listenMsgMode())
+        else:
+            listenProcess = multiprocessing.Process(target=self.listenMsgMode)
+            listenProcess.start()
+
+    def _waitWxLogin(self):
+        self._run('[*] 正在获取 uuid ... ', self.getUUID)
+        self._echo('[*] 正在获取二维码 ... 成功')
+        print
+        logging.debug('[*] 微信网页版 ... 开动')
+        self.genQRCode()
+        print '[*] 请使用微信扫描二维码以登录 ... '
+        if not self.waitForLogin():
+            return False
+            print '[*] 请在手机上点击确认以登录 ... '
+        if not self.waitForLogin(0):
+            return False
+        return True
+
+    def _doWxLogin(self):
+        self._run('[*] 正在登录 ... ', self.login)
+        self._run('[*] 微信初始化 ... ', self.webwxinit)
+        self._run('[*] 开启状态通知 ... ', self.webwxstatusnotify)
+        self._run('[*] 获取联系人 ... ', self.webwxgetcontact)
+        self._echo('[*] 应有 %s 个联系人，读取到联系人 %d 个' %
+                   (self.MemberCount, len(self.MemberList)))
+        print
+        self._echo('[*] 共有 %d 个群 | %d 个直接联系人 | %d 个特殊账号 ｜ %d 公众号或服务号' % (len(self.GroupList),
+                                                                         len(self.ContactList),
+                                                                         len(self.SpecialUsersList),
+                                                                         len(self.PublicUsersList)))
+        print
+        self._run('[*] 获取群 ... ', self.webwxbatchgetcontact)
+        logging.debug('[*] 微信网页版 ... 开动')
+        if self.DEBUG:
+            print self
+        logging.debug(self)
+
+    def _doWxListen(self):
+        self.lastCheckTs = time.time()
+        [retcode, selector] = self.synccheck()
+        if self.DEBUG:
+            print 'retcode: %s, selector: %s' % (retcode, selector)
+        logging.debug('retcode: %s, selector: %s' % (retcode, selector))
+        if retcode == '1100':
+            print '[*] 你在手机上登出了微信，债见'
+            logging.debug('[*] 你在手机上登出了微信，债见')
+            return
+        if retcode == '1101':
+            print '[*] 你在其他地方登录了 WEB 版微信，债见'
+            logging.debug('[*] 你在其他地方登录了 WEB 版微信，债见')
+            return
+        elif retcode == '0':
+            if selector == '2':
+                r = self.webwxsync()
+                if r is not None:
+                    self.handleMsg(r)
+            elif selector == '6':
+                # TODO
+                print '[*] 收到疑似红包消息'
+                logging.debug('[*] 收到疑似红包消息')
+            elif selector == '7':
+                print '[*] 你在手机上玩微信被我发现了'
+                logging.debug('[*] 你在手机上玩微信被我发现了')
+                r = self.webwxsync()
+            elif selector == '0':
+                time.sleep(1)
+
     def _safe_open(self, path):
         if self.autoOpen:
             if platform.system() == "Linux":
@@ -1030,9 +1118,10 @@ class WebWeixin(object):
         qr.make()
         # img = qr.make_image()
         # img.save("qrcode.png")
-        #mat = qr.get_matrix()
-        #self._printQR(mat)  # qr.print_tty() or qr.print_ascii()
-        qr.print_ascii(invert=True)
+        mat = qr.get_matrix()
+        self._printQR(mat)
+        #  qr.print_tty() or qr.print_ascii()
+        #qr.print_ascii(invert=True)
 
     def _transcoding(self, data):
         if not data:
@@ -1094,6 +1183,38 @@ class WebWeixin(object):
 
         return ''
 
+    def _searchContent(self, key, content, fmat='attr'):
+        if fmat == 'attr':
+            pm = re.search(key + '\s?=\s?"([^"<]+)"', content)
+            if pm:
+                return pm.group(1)
+        elif fmat == 'xml':
+            pm = re.search('<{0}>([^<]+)</{0}>'.format(key), content)
+            if not pm:
+                pm = re.search(
+                    '<{0}><\!\[CDATA\[(.*?)\]\]></{0}>'.format(key), content)
+            if pm:
+                return pm.group(1)
+        return '未知'
+
+
+class MessageRobot(object):
+
+    def talk(self, info, userid, myid='robot'):
+        return self._tuling(info, userid)
+
+    def _tuling(self, info, userid):
+        key = 'ec15bb3e9e524e46868bc3b7c5a9cde3'
+        url = 'http://www.tuling123.com/openapi/api?key=%s&info=%s&userid=%s' % (key, info, userid)
+        r = requests.get(url)
+        ans = r.json()
+        # code, text, url
+        if ans['code'] == '100000':
+            return ans['text'].encode('utf-8')
+        if ans['code'] == '200000':
+            return ans['text'].encode('utf-8') + ans['url']
+        return ans['text'].encode('utf-8')
+
     def _xiaodoubi(self, word):
         url = 'http://www.xiaodoubi.com/bot/chat.php'
         try:
@@ -1113,19 +1234,142 @@ class WebWeixin(object):
         else:
             return '你在说什么，风太大听不清列'
 
-    def _searchContent(self, key, content, fmat='attr'):
-        if fmat == 'attr':
-            pm = re.search(key + '\s?=\s?"([^"<]+)"', content)
-            if pm:
-                return pm.group(1)
-        elif fmat == 'xml':
-            pm = re.search('<{0}>([^<]+)</{0}>'.format(key), content)
-            if not pm:
-                pm = re.search(
-                    '<{0}><\!\[CDATA\[(.*?)\]\]></{0}>'.format(key), content)
-            if pm:
-                return pm.group(1)
-        return '未知'
+class WeixinRobot(object):
+
+    def __init__(self):
+        self.poolWx = []
+        self.poolWx.append(WebWeixin())
+        self.msgRobot = MessageRobot()
+        self.re_command = re.compile(r'#(.{2,12})#')
+        self.re_emoji = re.compile(r'<span class="emoji emoji([0-9a-zA-Z]{2,10})"></span>')
+        self.group_living_data = {}
+        self.group_living_temp = {}
+
+
+        self.group_living = {}
+        if configs.has_key('preload-data'):
+            ##TODO need load from config or DB
+            self.group_living['JD-专项特惠【天天荐】'] = '先来个小目标'
+            self.group_living['【京东11.11】沪西促销群'] = '先来个小目标'
+
+    def talk2Robot(self, info, userid, myid='robot'):
+        return self.msgRobot.talk(info, userid, myid)
+
+    @catchKeyboardInterrupt
+    def start(self):
+        for wx in self.poolWx:
+            wx.start2(self)
+        while True:
+            text = raw_input('')
+            if text == 'quit':
+                for listenProcess in multiprocessing.active_children():
+                    listenProcess.terminate()
+                print('[*] 退出微信')
+                logging.debug('[*] 退出微信')
+                exit()
+
+    def handleMsg(self, webWx, msg):
+
+        msgType = msg['MsgType']
+        fromUser = msg['FromUserName']
+        srcName = webWx.getUserRemarkName(msg['FromUserName'])
+        dstName = webWx.getUserRemarkName(msg['ToUserName'])
+        content = msg['Content'].replace('&lt;', '<').replace('&gt;', '>')
+        msgid = msg['MsgId']
+        #1.check command like "#command# ......"
+        if msgType == 1 and self.re_command.match(content):
+            command = self.re_command.search(content).group(0)
+            logging.debug('[*] 接到命令：'+command+'，cotent='+content)
+            if fromUser[:2] == '@@':
+                #群直播主群命令：申请直播|取消直播|设置主播
+                #群直播转播群命令：接收转播(直播号)|停止转播(直播号)
+                #通用群命令：参数设置
+                if command == '申请直播':
+                    if self.group_living[srcName]:
+                        pass
+                elif command == '取消直播':
+                    pass
+                elif command == '设置主播':
+                    pass
+                elif command == '接收转播':
+                    pass
+                elif command == '停止转播':
+                    pass
+                elif command == '参数设置':
+                    pass
+            else:
+                #主号命令：小号托管
+                #小号命令：取消托管
+                if command == '小号托管':
+                    pass
+                elif command == '取消托管':
+                    pass
+            return
+
+        #2.check personal Hosting
+        #3.check group live
+        if fromUser[:2]=='@@' and self.group_living.has_key(srcName):
+            toGroups = self.group_living.get(srcName)
+            if ":<br/>" in content:
+                [people, content] = content.split(':<br/>', 1)
+                groupName = srcName
+                srcName = webWx.getUserRemarkName(people)
+                replyContent = '[转]' + groupName+'->'+srcName+':<br/>' + content
+            else:
+                groupName = srcName
+                replyContent = '[转]' + groupName + ':<br/>' + content
+            replyContent = self.formatMsg(replyContent, groupName+'->'+srcName)
+            for toGroup in re.split(r'[\s\,\;]+', toGroups):
+                toGroupId = webWx.getGroupId(toGroup)
+                if not toGroupId:
+                    continue
+                if msgType == 1:
+                    if webWx.webwxsendmsg(replyContent, toGroupId):
+                        logging.info('群转发: ' + replyContent)
+                    else:
+                        logging.info('群转发文字失败, group='+toGroup+'('+toGroupId+')')
+                elif msgType == 3:
+                    image = webWx.webwxgetmsgimg(msgid)
+                    response = webWx.webwxuploadmedia(image)
+                    media_id = ""
+                    if response is not None:
+                        media_id = response['MediaId']
+                    if webWx.webwxsendmsgimg(toGroupId, media_id):
+                        logging.info('群转发图片成功')
+                    else:
+                        logging.info('群转发图片失败')
+            return
+
+        #4.auto reply(robot)
+        if not fromUser[:2] == '@@' and msgType == 1:
+            replyContent = self.talk2Robot(content, fromUser)
+            if webWx.webwxsendmsg(replyContent, fromUser):
+                logging.info('自动回复: ' + replyContent)
+            else:
+                logging.info('自动回复失败')
+        #5.others
+
+    def formatMsg(self, message, srcName):
+        message = self._specialFormat(message, srcName)
+        matchResult = self.re_emoji.match(message)
+        if matchResult and matchResult.groups():
+            for emojo_code in matchResult.groups():
+                print 'emojo_code='+emojo_code
+                logging.debug('emojo_code='+emojo_code)
+                message = message.replace('<span class="emoji emoji'+emojo_code+'"></span>', (''+emojo_code).decode())
+        message = message.replace('<br/>', '\n').replace('\n\n', '\n') #.replace('<', '&lt;').replace('>','&gt;')
+        return message
+
+    def _specialFormat(self, info, srcName):
+         info = self.__jd_qwd(info, srcName)
+         return info
+
+    def __jd_qwd(self, info, srcName):
+        if '京东' in srcName or "JD" in srcName:
+            links = re.findall('"((http|ftp)s?://.*?)"', info)
+            for link in links:
+                pass
+        return info
 
 
 class UnicodeStreamFilter:
@@ -1155,5 +1399,7 @@ if __name__ == '__main__':
         import coloredlogs
         coloredlogs.install(level='DEBUG')
 
-    webwx = WebWeixin()
-    webwx.start()
+    #webwx = WebWeixin()
+    #webwx.start()
+    wxRobot = WeixinRobot()
+    wxRobot.start()
