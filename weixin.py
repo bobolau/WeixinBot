@@ -1025,7 +1025,8 @@ class WebWeixin(object):
         print
         logging.debug('[*] 微信网页版 ... 开动')
         self.genQRCode()
-        print '[*] 请使用微信扫描二维码以登录 ... '
+        self._echo('[*] 请使用微信扫描二维码以登录 ...')
+        print
         if not self.waitForLogin():
             return False
             print '[*] 请在手机上点击确认以登录 ... '
@@ -1122,6 +1123,7 @@ class WebWeixin(object):
         self._printQR(mat)
         #  qr.print_tty() or qr.print_ascii()
         #qr.print_ascii(invert=True)
+        print(str)
 
     def _transcoding(self, data):
         if not data:
