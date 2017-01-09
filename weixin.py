@@ -1353,10 +1353,14 @@ class WeixinRobot(object):
         message = self._specialFormat(message, srcName)
         matchResult = self.re_emoji.findall(message)
         if matchResult:
-            for emojo_code in matchResult:
-                print 'emojo_code='+emojo_code
-                logging.debug('emojo_code='+emojo_code)
-                message = message.replace('<span class="emoji emoji'+emojo_code+'"></span>', ('\u'+emojo_code).decode('unicode_escape'))
+            for emoji_code in matchResult:
+                print 'emojo_code='+emoji_code
+                logging.debug('emoji_code='+emoji_code)
+                if len(emoji_code) > 8:
+                    emoji_str = ('\u' + emoji_code[:5]+'\u'+emoji_code[5:]).decode('unicode_escape')
+                else:
+                    emoji_str = ('\u' + emoji_code).decode('unicode_escape')
+                message = message.replace('<span class="emoji emoji'+emoji_code+'"></span>', emoji_str)
         message = message.replace('<br/>', '\n').replace('\n\n', '\n') #.replace('<', '&lt;').replace('>','&gt;')
         return message
 
