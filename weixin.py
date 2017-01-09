@@ -1351,13 +1351,13 @@ class WeixinRobot(object):
 
     def formatMsg(self, message, srcName):
         message = self._specialFormat(message, srcName)
-        matchResult = self.re_emoji.match(message)
-        if matchResult and matchResult.groups():
-            for emojo_code in matchResult.groups():
+        matchResult = self.re_emoji.findall(message)
+        if matchResult:
+            for emojo_code in matchResult:
                 print 'emojo_code='+emojo_code
                 logging.debug('emojo_code='+emojo_code)
                 message = message.replace('<span class="emoji emoji'+emojo_code+'"></span>', (''+emojo_code).decode())
-        message = message.replace('<br/>', '\n').replace('\n\n', '\n').replace('<', '&lt;').replace('>','&gt;')
+        message = message.replace('<br/>', '\n').replace('\n\n', '\n') #.replace('<', '&lt;').replace('>','&gt;')
         return message
 
     def _specialFormat(self, info, srcName):
