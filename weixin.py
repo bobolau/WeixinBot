@@ -1356,7 +1356,7 @@ class WeixinRobot(object):
             for emojo_code in matchResult:
                 print 'emojo_code='+emojo_code
                 logging.debug('emojo_code='+emojo_code)
-                message = message.replace('<span class="emoji emoji'+emojo_code+'"></span>', (''+emojo_code).decode())
+                message = message.replace('<span class="emoji emoji'+emojo_code+'"></span>', ('\u'+emojo_code).decode('unicode_escape'))
         message = message.replace('<br/>', '\n').replace('\n\n', '\n') #.replace('<', '&lt;').replace('>','&gt;')
         return message
 
