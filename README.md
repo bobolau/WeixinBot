@@ -307,6 +307,7 @@ retcode:
 selector:
 	0 正常
 	2 新的消息
+	4     ModContactList
 	7 进入/离开聊天界面
 ```
 <br>

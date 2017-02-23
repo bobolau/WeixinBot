@@ -79,7 +79,7 @@ class WebWeixin(object):
             "========================="
         return description
 
-    def __init__(self):
+    def __init__(self, deviceId=None):
         self.DEBUG = False
         self.uuid = ''
         self.base_uri = ''
@@ -88,7 +88,10 @@ class WebWeixin(object):
         self.sid = ''
         self.skey = ''
         self.pass_ticket = ''
-        self.deviceId = 'e' + repr(random.random())[2:17]
+        if deviceId is not None:
+            self.deviceId = deviceId
+        else:
+            self.deviceId = 'e' + repr(random.random())[2:17]
         self.BaseRequest = {}
         self.synckey = ''
         self.SyncKey = []
@@ -115,7 +118,6 @@ class WebWeixin(object):
                              'voip', 'blogappweixin', 'weixin', 'brandsessionholder', 'weixinreminder', 'wxid_novlwrv3lqwv11', 'gh_22b87fa7cb3c', 'officialaccounts', 'notification_messages', 'wxid_novlwrv3lqwv11', 'gh_22b87fa7cb3c', 'wxitil', 'userexperience_alarm', 'notification_messages']
         self.TimeOut = 20  # 同步最短时间间隔（单位：秒）
         self.media_count = -1
-
         self.cookie = cookielib.CookieJar()
         opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(self.cookie))
         opener.addheaders = [('User-agent', self.user_agent)]
@@ -882,10 +884,6 @@ class WebWeixin(object):
                     r = self.webwxsync()
                     if r is not None:
                         self.handleMsg(r)
-                elif selector == '4':
-                    r = self.webwxsync()
-                elif selector == '5':
-                    r = self.webwxsync()
                 elif selector == '6':
                     # TODO
                     redEnvelope += 1
@@ -899,6 +897,11 @@ class WebWeixin(object):
                     r = self.webwxsync()
                 elif selector == '0':
                     time.sleep(1)
+                else:
+                    r = self.webwxsync()
+                    if r is not None:
+                        pass
+
             if (time.time() - self.lastCheckTs) <= 20:
                 time.sleep(time.time() - self.lastCheckTs)
 
@@ -1119,6 +1122,14 @@ class WebWeixin(object):
                 r = self.webwxsync()
             elif selector == '0':
                 time.sleep(1)
+    def _loadCookie(self):
+        fileName = self.deviceId + '_cookie.txt';
+        self.cookie = cookielib.MozillaCookieJar()
+        self.cookie.load(fileName, ignore_discard=True, ignore_expires=True)
+
+    def _saveCookie(self):
+        fileName = self.deviceId + '_cookie.txt';
+        self.cookie.save(fileName, ignore_discard=True, ignore_expires=True)
 
     def _safe_open(self, path):
         if self.autoOpen:
@@ -1405,6 +1416,20 @@ class WeixinRobot(object):
             toUser = msg['RecommendInfo']['UserName']
             ticket = msg['RecommendInfo']['Ticket']
             webWx.webwxverifyuser(toUser, ticket)
+        if msgType == 10000:
+            if  fromUser[:2] == '@@':
+                regx = '"(\S+?)"邀请"(\S+?)"加入了群聊'
+                pm = re.search(regx, content)
+                if pm:
+                    person1 = pm.group(1)
+                    person2 = pm.group(2)
+                    replyContent = '欢迎%s(%s好友)加入 @%s' % (person2, person1, person2)
+                    webWx.webwxsendmsg(replyContent, fromUser)
+        if msgType == 10002:
+            if fromUser[:2] == '@@':
+                pass
+            else:
+                pass
 
     def formatMsg(self, message, srcName):
         message = self._specialFormat(message, srcName)
