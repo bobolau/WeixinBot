@@ -395,9 +395,9 @@ class WebWeixin(object):
 
     def webwxsendmsg(self, word, to='filehelper'):
         url = self.base_uri + \
-            '/webwxsendmsg?pass_ticket=%s' % (self.pass_ticket)
+              '/webwxsendmsg?pass_ticket=%s' % (self.pass_ticket)
         clientMsgId = str(int(time.time() * 1000)) + \
-            str(random.random())[:5].replace('.', '')
+                      str(random.random())[:5].replace('.', '')
         params = {
             'BaseRequest': self.BaseRequest,
             'Msg': {
@@ -408,6 +408,29 @@ class WebWeixin(object):
                 "LocalID": clientMsgId,
                 "ClientMsgId": clientMsgId
             }
+        }
+        headers = {'content-type': 'application/json; charset=UTF-8'}
+        data = json.dumps(params, ensure_ascii=False).encode('utf8')
+        r = requests.post(url, data=data, headers=headers)
+        dic = r.json()
+        return dic['BaseResponse']['Ret'] == 0
+
+    def webwxverifyuser(self, to, ticket):
+        url = self.base_uri + \
+              '/webwxverifyuser?s=%s&pass_ticket=%s' % (int(time.time()), self.pass_ticket)
+
+        params = {
+            'BaseRequest': self.BaseRequest,
+            'Opcode': 3,
+            'VerifyUserListSize': 1,
+            "VerifyUserList": [{
+                "Value": to,
+                "VerifyUserTicket": ticket
+            }],
+            "VerifyContent": "",
+            "SceneListCount": 1,
+            "SceneList": [33],
+            "skey": self.skey
         }
         headers = {'content-type': 'application/json; charset=UTF-8'}
         data = json.dumps(params, ensure_ascii=False).encode('utf8')
@@ -769,6 +792,12 @@ class WebWeixin(object):
                            'message': '%s 发了一段语音: %s' % (name, voice)}
                 self._showMsg(raw_msg)
                 self._safe_open(voice)
+            elif msgType == 37:
+                #用户加好友请求
+                raw_msg = {'raw_msg': msg,
+                           'message': '用户加好友请求: %s' % (name)}
+                self._showMsg(raw_msg)
+
             elif msgType == 42:
                 info = msg['RecommendInfo']
                 print '%s 发送了一张名片:' % name
@@ -853,11 +882,16 @@ class WebWeixin(object):
                     r = self.webwxsync()
                     if r is not None:
                         self.handleMsg(r)
+                elif selector == '4':
+                    r = self.webwxsync()
+                elif selector == '5':
+                    r = self.webwxsync()
                 elif selector == '6':
                     # TODO
                     redEnvelope += 1
                     print '[*] 收到疑似红包消息 %d 次' % redEnvelope
                     logging.debug('[*] 收到疑似红包消息 %d 次' % redEnvelope)
+                    r = self.webwxsync()
                 elif selector == '7':
                     playWeChat += 1
                     print '[*] 你在手机上玩微信被我发现了 %d 次' % playWeChat
@@ -1062,11 +1096,11 @@ class WebWeixin(object):
         if retcode == '1100':
             print '[*] 你在手机上登出了微信，债见'
             logging.debug('[*] 你在手机上登出了微信，债见')
-            return
+            #return
         if retcode == '1101':
             print '[*] 你在其他地方登录了 WEB 版微信，债见'
             logging.debug('[*] 你在其他地方登录了 WEB 版微信，债见')
-            return
+            #return
         elif retcode == '0':
             if selector == '2':
                 r = self.webwxsync()
@@ -1079,6 +1113,9 @@ class WebWeixin(object):
             elif selector == '7':
                 print '[*] 你在手机上玩微信被我发现了'
                 logging.debug('[*] 你在手机上玩微信被我发现了')
+                r = self.webwxsync()
+            elif selector == '3':
+                print '[*] :::3333'
                 r = self.webwxsync()
             elif selector == '0':
                 time.sleep(1)
@@ -1343,13 +1380,31 @@ class WeixinRobot(object):
             return
 
         #4.auto reply(robot)
-        if not fromUser[:2] == '@@' and msgType == 1:
-            replyContent = self.talk2Robot(content, fromUser)
-            if webWx.webwxsendmsg(replyContent, fromUser):
-                logging.info('自动回复: ' + replyContent)
+        if  msgType == 1:
+            if not fromUser[:2] == '@@':
+                replyContent = self.talk2Robot(content, fromUser)
+                if webWx.webwxsendmsg(replyContent, fromUser):
+                    logging.info('自动回复: ' + replyContent)
+                else:
+                    logging.info('自动回复失败')
             else:
-                logging.info('自动回复失败')
+                if ":<br/>" in content:
+                    [people, content] = content.split(':<br/>', 1)
+                    srcName = webWx.getUserRemarkName(people)
+                    if content.startswith('@' + dstName):
+                        content = content[len(dstName) + 2:]
+                        replyContent = '@' + srcName + '  ' + self.talk2Robot(content, srcName)
+                        if webWx.webwxsendmsg(replyContent, fromUser):
+                            logging.info('自动回复: ' + replyContent)
+                        else:
+                            logging.info('自动回复失败')
+
         #5.others
+        if msgType == 37:
+            # 好友推荐，自动加为好友
+            toUser = msg['RecommendInfo']['UserName']
+            ticket = msg['RecommendInfo']['Ticket']
+            webWx.webwxverifyuser(toUser, ticket)
 
     def formatMsg(self, message, srcName):
         message = self._specialFormat(message, srcName)
@@ -1362,7 +1417,7 @@ class WeixinRobot(object):
                     emoji_str = ('\u' + emoji_code[:5]+'\u'+emoji_code[5:]).decode('unicode_escape')
                 else:
                     emoji_str = ('\u' + emoji_code).decode('unicode_escape')
-                message = message.replace('<span class="emoji emoji'+emoji_code+'"></span>', emoji_str)
+                message = message.replace('<span class="emoji emoji'+emoji_code+'"></span>', emoji_str.encode('utf-8'))
         message = message.replace('<br/>', '\n').replace('\n\n', '\n') #.replace('<', '&lt;').replace('>','&gt;')
         return message
 
