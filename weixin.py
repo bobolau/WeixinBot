@@ -1403,7 +1403,7 @@ class WeixinRobot(object):
                     [people, content] = content.split(':<br/>', 1)
                     srcName = webWx.getUserRemarkName(people)
                     if content.startswith('@' + dstName):
-                        content = content[len(dstName) + 2:]
+                        content = content[(len(dstName) + 2):]
                         replyContent = '@' + srcName + '  ' + self.talk2Robot(content, srcName)
                         if webWx.webwxsendmsg(replyContent, fromUser):
                             logging.info('自动回复: ' + replyContent)
