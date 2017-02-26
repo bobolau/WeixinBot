@@ -1044,10 +1044,44 @@ class WebWeixin(object):
         self._echo('[*] 微信网页版 ... 开动')
         print
         logging.debug('[*] 微信网页版 ... 开动')
-        while True:
-            if self._waitWxLogin():
+
+        need_login = True
+        if '' not in (self.skey, self.sid, self.uin, self.pass_ticket):
+            self._echo('[*] 微信初始化 ... 尝试恢复')
+            if self.webwxinit():
+                need_login = False
+        if need_login:
+            while True:
+                self._run('[*] 正在获取 uuid ... ', self.getUUID)
+                self._echo('[*] 正在获取二维码 ... 成功')
+                print
+                logging.debug('[*] 微信网页版 ... 开动')
+                self.genQRCode()
+                print '[*] 请使用微信扫描二维码以登录 ... '
+                if not self.waitForLogin():
+                    continue
+                    print '[*] 请在手机上点击确认以登录 ... '
+                if not self.waitForLogin(0):
+                    continue
                 break
-        self._doWxLogin()
+            self._run('[*] 正在登录 ... ', self.login)
+            self._run('[*] 微信初始化 ... ', self.webwxinit)
+
+        self._run('[*] 开启状态通知 ... ', self.webwxstatusnotify)
+        self._run('[*] 获取联系人 ... ', self.webwxgetcontact)
+        self._echo('[*] 应有 %s 个联系人，读取到联系人 %d 个' %
+                       (self.MemberCount, len(self.MemberList)))
+        print
+        self._echo('[*] 共有 %d 个群 | %d 个直接联系人 | %d 个特殊账号 ｜ %d 公众号或服务号' % (len(self.GroupList),
+                                                                             len(self.ContactList),
+                                                                             len(self.SpecialUsersList),
+                                                                             len(self.PublicUsersList)))
+        print
+        self._run('[*] 获取群 ... ', self.webwxbatchgetcontact)
+        logging.debug('[*] 微信网页版 ... 开动')
+        if self.DEBUG:
+            print self
+        logging.debug(self)
 
         if sys.platform.startswith('win'):
             import thread
@@ -1056,72 +1090,6 @@ class WebWeixin(object):
             listenProcess = multiprocessing.Process(target=self.listenMsgMode)
             listenProcess.start()
 
-    def _waitWxLogin(self):
-        self._run('[*] 正在获取 uuid ... ', self.getUUID)
-        self._echo('[*] 正在获取二维码 ... 成功')
-        print
-        logging.debug('[*] 微信网页版 ... 开动')
-        self.genQRCode()
-        self._echo('[*] 请使用微信扫描二维码以登录 ...')
-        print
-        if not self.waitForLogin():
-            return False
-            print '[*] 请在手机上点击确认以登录 ... '
-        if not self.waitForLogin(0):
-            return False
-        return True
-
-    def _doWxLogin(self):
-        self._run('[*] 正在登录 ... ', self.login)
-        self._run('[*] 微信初始化 ... ', self.webwxinit)
-        self._run('[*] 开启状态通知 ... ', self.webwxstatusnotify)
-        self._run('[*] 获取联系人 ... ', self.webwxgetcontact)
-        self._echo('[*] 应有 %s 个联系人，读取到联系人 %d 个' %
-                   (self.MemberCount, len(self.MemberList)))
-        print
-        self._echo('[*] 共有 %d 个群 | %d 个直接联系人 | %d 个特殊账号 ｜ %d 公众号或服务号' % (len(self.GroupList),
-                                                                         len(self.ContactList),
-                                                                         len(self.SpecialUsersList),
-                                                                         len(self.PublicUsersList)))
-        print
-        self._run('[*] 获取群 ... ', self.webwxbatchgetcontact)
-        logging.debug('[*] 微信网页版 ... 开动')
-        if self.DEBUG:
-            print self
-        logging.debug(self)
-
-    def _doWxListen(self):
-        self.lastCheckTs = time.time()
-        [retcode, selector] = self.synccheck()
-        if self.DEBUG:
-            print 'retcode: %s, selector: %s' % (retcode, selector)
-        logging.debug('retcode: %s, selector: %s' % (retcode, selector))
-        if retcode == '1100':
-            print '[*] 你在手机上登出了微信，债见'
-            logging.debug('[*] 你在手机上登出了微信，债见')
-            #return
-        if retcode == '1101':
-            print '[*] 你在其他地方登录了 WEB 版微信，债见'
-            logging.debug('[*] 你在其他地方登录了 WEB 版微信，债见')
-            #return
-        elif retcode == '0':
-            if selector == '2':
-                r = self.webwxsync()
-                if r is not None:
-                    self.handleMsg(r)
-            elif selector == '6':
-                # TODO
-                print '[*] 收到疑似红包消息'
-                logging.debug('[*] 收到疑似红包消息')
-            elif selector == '7':
-                print '[*] 你在手机上玩微信被我发现了'
-                logging.debug('[*] 你在手机上玩微信被我发现了')
-                r = self.webwxsync()
-            elif selector == '3':
-                print '[*] :::3333'
-                r = self.webwxsync()
-            elif selector == '0':
-                time.sleep(1)
     def _loadCookie(self):
         fileName = self.deviceId + '_cookie.txt';
         self.cookie = cookielib.MozillaCookieJar()
@@ -1143,11 +1111,13 @@ class WebWeixin(object):
         if func(*args):
             print '成功'
             logging.debug('%s... 成功' % (str))
+            return True
         else:
             print('失败\n[*] 退出程序')
             logging.debug('%s... 失败' % (str))
             logging.debug('[*] 退出程序')
-            exit()
+            return False
+            ##exit()
 
     def _echo(self, str):
         sys.stdout.write(str)
@@ -1160,7 +1130,7 @@ class WebWeixin(object):
             print ''.join([BLACK if j else WHITE for j in i])
 
     def _str2qr(self, str):
-        print(str)
+        #print(str)
         qr = qrcode.QRCode()
         qr.border = 1
         qr.add_data(str)
@@ -1171,7 +1141,7 @@ class WebWeixin(object):
         self._printQR(mat)
         #  qr.print_tty() or qr.print_ascii()
         #qr.print_ascii(invert=True)
-        print(str)
+        #print(str)
 
     def _transcoding(self, data):
         if not data:
@@ -1307,8 +1277,13 @@ class WeixinRobot(object):
 
     @catchKeyboardInterrupt
     def start(self):
+        ##1. load config from DB or file
+
+        ##2. start wx instances
         for wx in self.poolWx:
             wx.start2(self)
+
+        ##3. special command
         while True:
             text = raw_input('')
             if text == 'quit':
