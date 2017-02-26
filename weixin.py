@@ -1432,6 +1432,19 @@ class WeixinRobot(object):
                 pass
         return info
 
+    def _run(self, str, func, *args):
+        self._echo(str)
+        if func(*args):
+            logging.debug('%s... 成功' % (str))
+            return True
+        else:
+            logging.debug('%s... 失败' % (str))
+            return False
+
+    def _echo(self, str):
+        sys.stdout.write(str)
+        sys.stdout.flush()
+
 
 class UnicodeStreamFilter:
 
