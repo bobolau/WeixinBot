@@ -2,6 +2,7 @@
 # coding: utf-8
 import sys
 import logging
+import random
 from weixin import WebWeixin
 from wxrobot import WxRobot
 
@@ -18,11 +19,36 @@ def catchKeyboardInterrupt(fn):
 @catchKeyboardInterrupt
 def wx_start():
     wxrobot = WxRobot()
+    webwxs = []
+    try:
+        with open('wxrobots.txt', 'r') as f:
+            for line in f.readlines():  # 依次读取每行
+                line = line.strip()  # 去掉每行头尾空白
+                if not len(line) or line.startswith('#'):  # 判断是否是空行或注释行
+                    continue  # 是的话，跳过不处理
+                webwx = WebWeixin(line)
+                webwx.DEBUG = True
+                webwx.TimeOut = 30
+                webwx.start2(wxrobot)
+                webwxs.append(webwx)
+            f.close()
+    except:
+        pass
 
-    webwx = WebWeixin('e347606265086042')
-    webwx.DEBUG = True
-    webwx.TimeOut = 30
-    webwx.start2(wxrobot)
+    if len(webwxs) == 0:
+        deviceId = 'e' + repr(random.random())[2:17]
+        webwx = WebWeixin(deviceId)
+        webwx.DEBUG = True
+        webwx.TimeOut = 30
+        webwx.start2(wxrobot)
+        webwxs.append(webwx)
+        try:
+            with open('wxrobots.txt', 'w') as f:
+                f.write(deviceId)
+                f.close()
+        except:
+            pass
+
 
     while True:
         text = input('')

@@ -993,6 +993,8 @@ class WebWeixin(object):
                     pass
                 else:
                     forceLogin = True
+            else:
+                forceLogin = True
 
         if forceLogin:
             while True:
