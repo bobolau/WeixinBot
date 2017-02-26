@@ -20,6 +20,8 @@ def wx_start():
     wxrobot = WxRobot()
 
     webwx = WebWeixin('e347606265086042')
+    webwx.DEBUG = True
+    webwx.TimeOut = 30
     webwx.start2(wxrobot)
 
     while True:

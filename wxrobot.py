@@ -18,30 +18,36 @@ class WxRobot(object):
         self.re_emoji = re.compile(r'<span class="emoji emoji([0-9a-zA-Z]{2,10})"></span>')
         self.saveFolder = os.path.join(os.getcwd(), 'saved')
 
-    def loadWxConfig(self, webwx, data=None):
+    def loadWxConfig(self, webwx, config=None):
         if not webwx:
             return
-        try:
-            with open(self._getfile_wxdump(webwx.deviceId), 'r') as f:
-                webwx.__dict__.update(json.loads(f.read()))
-                pass
-        except:
-            pass
 
-        try:
-            with open(self._getfile_wxconfig(webwx.deviceId), 'r') as f:
-                data = json.loads(f.read())
-                pass
-        except:
-            pass
-        if data and data["lastlogin"]:
+        # for test only
+        # if config:
+        #     try:
+        #         with open(self._getfile_wxconfig(webwx.deviceId), 'r') as f:
+        #             data = json.loads(f.read())
+        #             pass
+        #     except:
+        #         pass
+
+        if config and config["lastlogin"]:
             #webwx.deviceId = data["lastlogin"]["deviceId"]
-            webwx.uin = data["lastlogin"]["uin"]
-            webwx.sid = data["lastlogin"]["sid"]
-            webwx.skey = data["lastlogin"]["skey"]
-            webwx.pass_ticket = data["lastlogin"]["pass_ticket"]
-            webwx.base_uri = data["lastlogin"]["base_uri"]
-            webwx.uuid = data["lastlogin"]["uuid"]
+            webwx.uin = config["lastlogin"]["uin"]
+            webwx.sid = config["lastlogin"]["sid"]
+            webwx.skey = config["lastlogin"]["skey"]
+            webwx.pass_ticket = config["lastlogin"]["pass_ticket"]
+            webwx.base_uri = config["lastlogin"]["base_uri"]
+            webwx.uuid = config["lastlogin"]["uuid"]
+        else:
+            try:
+                with open(self._getfile_wxdump(webwx.deviceId), 'r') as f:
+                    webwx.__dict__.update(json.loads(f.read()))
+                    pass
+            except:
+                pass
+
+
         if webwx.cookie:
             webwx.cookie.load(self._getfile_wxcookie(webwx.deviceId),ignore_expires=True,ignore_discard=True)
             pass
@@ -51,14 +57,17 @@ class WxRobot(object):
     def saveWxConfig(self, webwx):
         if not webwx:
             return
+
         config = r'{"lastlogin":{"uin":"%s","sid":"%s","skey":"%s","pass_ticket":"%s","deviceId":"%s","base_uri":"%s","uuid":"%s"}}' %(
                 webwx.uin, webwx.sid, webwx.skey, webwx.pass_ticket, webwx.deviceId, webwx.base_uri, webwx.uuid)
         with open(self._getfile_wxconfig(webwx.deviceId), 'w') as f:
             f.write(config)
             f.close()
+
         if webwx.cookie:
             webwx.cookie.save(self._getfile_wxcookie(webwx.deviceId),ignore_expires=True,ignore_discard=True)
             pass
+
         with open(self._getfile_wxdump(webwx.deviceId), 'w') as f:
             webwx2 = copy.copy(webwx)
             webwx2.cookie = None
@@ -68,7 +77,6 @@ class WxRobot(object):
             json_str = json.dumps(webwx2.__dict__)
             f.write(json_str)
             f.close()
-
 
     def _getfile_wxdump(self, deviceId):
         return os.path.join(self.saveFolder, deviceId + '_dump.txt')

@@ -180,7 +180,7 @@ class WebWeixin(object):
         data = self._post(url, params, False)
         if data == '':
             return
-        QRCODE_PATH = self._saveFile('qrcode.jpg', data, '_showQRCodeImg')
+        QRCODE_PATH = self._saveFile(self.deviceId+'qrcode.jpg', data, '_showQRCodeImg')
         if str == 'win':
             os.startfile(QRCODE_PATH)
         elif str == 'macos':
@@ -782,14 +782,14 @@ class WebWeixin(object):
                     else:
                         pass
 #自己加的代码-------------------------------------------#
-                if self.autoReplyMode:
-                    ans = self._xiaodoubi(content) + '\n[微信机器人自动回复]'
-                    if self.webwxsendmsg(ans, msg['FromUserName']):
-                        print('自动回复: ' + ans)
-                        logging.info('自动回复: ' + ans)
-                    else:
-                        print('自动回复失败')
-                        logging.info('自动回复失败')
+                # if self.autoReplyMode:
+                #     ans = self._xiaodoubi(content) + '\n[微信机器人自动回复]'
+                #     if self.webwxsendmsg(ans, msg['FromUserName']):
+                #         print('自动回复: ' + ans)
+                #         logging.info('自动回复: ' + ans)
+                #     else:
+                #         print('自动回复失败')
+                #         logging.info('自动回复失败')
             elif msgType == 3:
                 image = self.webwxgetmsgimg(msgid)
                 raw_msg = {'raw_msg': msg,
@@ -955,7 +955,7 @@ class WebWeixin(object):
         user_id = self.getUSerID(name)
         response = self.webwxsendmsgemotion(user_id, media_id)
 
-    def start2(self, wxrobot=None):
+    def start2(self, wxrobot=None, config=None):
         self._echo('[*] 微信网页版 ... 开动')
         print()
         logging.debug('[*] 微信网页版 ... 开动')
@@ -964,9 +964,16 @@ class WebWeixin(object):
 
         ## load config
         if self.wxRobot and self.wxRobot.loadWxConfig:
-            self.wxRobot.loadWxConfig(self)
+            self.wxRobot.loadWxConfig(self, config)
 
         self._relogin()
+
+        if sys.platform.startswith('win'):
+            import _thread
+            _thread.start_new_thread(self.listenMsgMode())
+        else:
+            listenProcess = multiprocessing.Process(target=self.listenMsgMode)
+            listenProcess.start()
 
         pass
 
@@ -1025,12 +1032,6 @@ class WebWeixin(object):
             print(self)
         logging.debug(self)
 
-        if sys.platform.startswith('win'):
-            import _thread
-            _thread.start_new_thread(self.listenMsgMode())
-        else:
-            listenProcess = multiprocessing.Process(target=self.listenMsgMode)
-            listenProcess.start()
 
     def stop2(self):
         self.listenProcess.terminate()
@@ -1226,24 +1227,25 @@ class WebWeixin(object):
 
         return ''
 
-    def _xiaodoubi(self, word):
-        url = 'http://www.xiaodoubi.com/bot/chat.php'
-        try:
-            r = requests.post(url, data={'chat': word})
-            return r.content
-        except:
-            return "让我一个人静静 T_T..."
-
-    def _simsimi(self, word):
-        key = ''
-        url = 'http://sandbox.api.simsimi.com/request.p?key=%s&lc=ch&ft=0.0&text=%s' % (
-            key, word)
-        r = requests.get(url)
-        ans = r.json()
-        if ans['result'] == '100':
-            return ans['response']
-        else:
-            return '你在说什么，风太大听不清列'
+    ## move to class WxRobot
+    # def _xiaodoubi(self, word):
+    #     url = 'http://www.xiaodoubi.com/bot/chat.php'
+    #     try:
+    #         r = requests.post(url, data={'chat': word})
+    #         return r.content
+    #     except:
+    #         return "让我一个人静静 T_T..."
+    #
+    # def _simsimi(self, word):
+    #     key = ''
+    #     url = 'http://sandbox.api.simsimi.com/request.p?key=%s&lc=ch&ft=0.0&text=%s' % (
+    #         key, word)
+    #     r = requests.get(url)
+    #     ans = r.json()
+    #     if ans['result'] == '100':
+    #         return ans['response']
+    #     else:
+    #         return '你在说什么，风太大听不清列'
 
     def _searchContent(self, key, content, fmat='attr'):
         if fmat == 'attr':
