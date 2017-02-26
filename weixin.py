@@ -1163,9 +1163,11 @@ class WebWeixin(object):
         qr.make()
         # img = qr.make_image()
         # img.save("qrcode.png")
-        #mat = qr.get_matrix()
-        #self._printQR(mat)  # qr.print_tty() or qr.print_ascii()
-        qr.print_ascii(invert=True)
+        mat = qr.get_matrix()
+        self._printQR(mat)
+        print(str, flush=True)
+        #  qr.print_tty() or qr.print_ascii()
+        #qr.print_ascii(invert=True)
 
     def _transcoding(self, data):
         if not data:
