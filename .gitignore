@@ -95,3 +95,4 @@ ENV/
 
 *.pyc
 saved/qrcodes/qrcode.jpg
+saved/

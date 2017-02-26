@@ -81,8 +81,9 @@ class WebWeixin(object):
             "========================="
         return description
 
-    def __init__(self):
+    def __init__(self, device_id = None):
         self.DEBUG = False
+        self.wxRobot = None
         self.uuid = ''
         self.base_uri = ''
         self.redirect_uri = ''
@@ -90,7 +91,10 @@ class WebWeixin(object):
         self.sid = ''
         self.skey = ''
         self.pass_ticket = ''
-        self.deviceId = 'e' + repr(random.random())[2:17]
+        if device_id:
+            self.deviceId = device_id
+        else:
+            self.deviceId = 'e' + repr(random.random())[2:17]
         self.BaseRequest = {}
         self.synckey = ''
         self.SyncKey = []
@@ -118,7 +122,7 @@ class WebWeixin(object):
         self.TimeOut = 20  # 同步最短时间间隔（单位：秒）
         self.media_count = -1
 
-        self.cookie = http.cookiejar.CookieJar()
+        self.cookie = http.cookiejar.LWPCookieJar() #CookieJar() #
         opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(self.cookie))
         opener.addheaders = [('User-agent', self.user_agent)]
         urllib.request.install_opener(opener)
@@ -299,7 +303,8 @@ class WebWeixin(object):
                 ContactList.remove(Contact)
         self.ContactList = ContactList
 
-        return True
+        return dic['BaseResponse']['Ret'] == 0
+        #return True
 
     def webwxbatchgetcontact(self):
         url = self.base_uri + \
@@ -364,6 +369,7 @@ class WebWeixin(object):
             [retcode, selector] = self.synccheck()
             if retcode == '0':
                 return True
+        self.syncHost = 'wx2.qq.com'
         return False
 
     def synccheck(self):
@@ -743,6 +749,10 @@ class WebWeixin(object):
             logging.info('%s %s -> %s: %s' % (message_id, srcName.strip(),
                                               dstName.strip(), content.replace('<br/>', '\n')))
 
+    def handleMsg2(self, r, selector='2'):
+        if selector == '2':
+            self.handleMsg(r)
+
     def handleMsg(self, r):
         for msg in r['AddMsgList']:
             print('[*] 你有新的消息，请注意查收')
@@ -766,6 +776,11 @@ class WebWeixin(object):
 #自己加的代码-------------------------------------------#
                 #if self.autoReplyRevokeMode:
                 #    store
+                if self.wxRobot and self.wxRobot.handleWxMsg:
+                    if self.wxRobot.handleWxMsg(self, msg):
+                        pass
+                    else:
+                        pass
 #自己加的代码-------------------------------------------#
                 if self.autoReplyMode:
                     ans = self._xiaodoubi(content) + '\n[微信机器人自动回复]'
@@ -856,30 +871,35 @@ class WebWeixin(object):
                 print('retcode: %s, selector: %s' % (retcode, selector))
             logging.debug('retcode: %s, selector: %s' % (retcode, selector))
             if retcode == '1100':
-                print('[*] 你在手机上登出了微信，债见')
-                logging.debug('[*] 你在手机上登出了微信，债见')
+                print('[*] 你在手机上登出了微信，再见')
+                logging.debug('[*] 你在手机上登出了微信，再见')
                 break
             if retcode == '1101':
-                print('[*] 你在其他地方登录了 WEB 版微信，债见')
-                logging.debug('[*] 你在其他地方登录了 WEB 版微信，债见')
+                print('[*] 你在其他地方登录了 WEB 版微信，再见')
+                logging.debug('[*] 你在其他地方登录了 WEB 版微信，再见')
                 break
             elif retcode == '0':
                 if selector == '2':
                     r = self.webwxsync()
                     if r is not None:
-                        self.handleMsg(r)
-                elif selector == '6':
-                    # TODO
-                    redEnvelope += 1
-                    print('[*] 收到疑似红包消息 %d 次' % redEnvelope)
-                    logging.debug('[*] 收到疑似红包消息 %d 次' % redEnvelope)
-                elif selector == '7':
-                    playWeChat += 1
-                    print('[*] 你在手机上玩微信被我发现了 %d 次' % playWeChat)
-                    logging.debug('[*] 你在手机上玩微信被我发现了 %d 次' % playWeChat)
-                    r = self.webwxsync()
+                        self.handleMsg2(r, selector)
+                # elif selector == '6':
+                #     # TODO
+                #     redEnvelope += 1
+                #     print('[*] 收到疑似红包消息 %d 次' % redEnvelope)
+                #     logging.debug('[*] 收到疑似红包消息 %d 次' % redEnvelope)
+                # elif selector == '7':
+                #     playWeChat += 1
+                #     print('[*] 你在手机上玩微信被我发现了 %d 次' % playWeChat)
+                #     logging.debug('[*] 你在手机上玩微信被我发现了 %d 次' % playWeChat)
+                #     r = self.webwxsync()
                 elif selector == '0':
                     time.sleep(1)
+                else:
+                    r = self.webwxsync()
+                    if r is not None:
+                        self.handleMsg2(r, selector)
+
             if (time.time() - self.lastCheckTs) <= 20:
                 time.sleep(time.time() - self.lastCheckTs)
 
@@ -934,6 +954,88 @@ class WebWeixin(object):
             media_id = response['MediaId']
         user_id = self.getUSerID(name)
         response = self.webwxsendmsgemotion(user_id, media_id)
+
+    def start2(self, wxrobot=None):
+        self._echo('[*] 微信网页版 ... 开动')
+        print()
+        logging.debug('[*] 微信网页版 ... 开动')
+        if wxrobot:
+            self.wxRobot = wxrobot
+
+        ## load config
+        if self.wxRobot and self.wxRobot.loadWxConfig:
+            self.wxRobot.loadWxConfig(self)
+
+        self._relogin()
+
+        pass
+
+    def _relogin(self, forceLogin = False):
+
+        if not forceLogin:
+            ## need login?
+            if '' not in (self.skey, self.sid, self.uin, self.pass_ticket):
+                self.BaseRequest = {
+                    'Uin': int(self.uin),
+                    'Sid': self.sid,
+                    'Skey': self.skey,
+                    'DeviceID': self.deviceId,
+                }
+                self._echo('[*] 微信初始化 ...  from config')
+                if self.webwxinit():
+                    pass
+                else:
+                    forceLogin = True
+
+        if forceLogin:
+            while True:
+                self._run('[*] 正在获取 uuid ... ', self.getUUID)
+                self._echo('[*] 正在获取二维码 ... 成功')
+                print()
+                logging.debug('[*] 微信网页版 ... 开动')
+                self.genQRCode()
+                print('[*] 请使用微信扫描二维码以登录 ... ')
+                if not self.waitForLogin():
+                    continue
+                    print('[*] 请在手机上点击确认以登录 ... ')
+                if not self.waitForLogin(0):
+                    continue
+                break
+            self._run('[*] 正在登录 ... ', self.login)
+            self._run('[*] 微信初始化 ... ', self.webwxinit)
+
+            # save config
+            if self.wxRobot and self.wxRobot.saveWxConfig:
+                self.wxRobot.saveWxConfig(self)
+
+
+        self._run('[*] 开启状态通知 ... ', self.webwxstatusnotify)
+        self._run('[*] 获取联系人 ... ', self.webwxgetcontact)
+        self._echo('[*] 应有 %s 个联系人，读取到联系人 %d 个' %
+                   (self.MemberCount, len(self.MemberList)))
+        print()
+        self._echo('[*] 共有 %d 个群 | %d 个直接联系人 | %d 个特殊账号 ｜ %d 公众号或服务号' % (len(self.GroupList),
+                                                                         len(self.ContactList),
+                                                                         len(self.SpecialUsersList),
+                                                                         len(self.PublicUsersList)))
+        print()
+        self._run('[*] 获取群 ... ', self.webwxbatchgetcontact)
+        logging.debug('[*] 微信网页版 ... 开动')
+        if self.DEBUG:
+            print(self)
+        logging.debug(self)
+
+        if sys.platform.startswith('win'):
+            import _thread
+            _thread.start_new_thread(self.listenMsgMode())
+        else:
+            listenProcess = multiprocessing.Process(target=self.listenMsgMode)
+            listenProcess.start()
+
+    def stop2(self):
+        self.listenProcess.terminate()
+        print('[*] 退出微信')
+        logging.debug('[*] 退出微信')
 
     @catchKeyboardInterrupt
     def start(self):
@@ -1015,6 +1117,8 @@ class WebWeixin(object):
                 self.sendEmotion(name, file_name)
                 logging.debug('发送表情')
 
+
+
     def _safe_open(self, path):
         if self.autoOpen:
             if platform.system() == "Linux":
@@ -1028,10 +1132,15 @@ class WebWeixin(object):
             print('成功')
             logging.debug('%s... 成功' % (str))
         else:
-            print('失败\n[*] 退出程序')
+            print('失败\n[*] 重新登录')
             logging.debug('%s... 失败' % (str))
-            logging.debug('[*] 退出程序')
-            exit()
+            logging.debug('[*] 重新登录')
+            self._relogin(True)
+            #print('失败\n[*] 退出程序')
+            #logging.debug('%s... 失败' % (str))
+            #logging.debug('[*] 退出程序')
+            #exit()
+
 
     def _echo(self, str):
         sys.stdout.write(str)
