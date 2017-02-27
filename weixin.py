@@ -387,8 +387,7 @@ class WebWeixin(object):
         if data == '':
             return [-1,-1]
 
-        pm = re.search(
-            r'window.synccheck={retcode:"(\d+)",selector:"(\d+)"}', data)
+        pm = re.search(r'window.synccheck={retcode:"(\d+)",selector:"(\d+)"}', data)
         retcode = pm.group(1)
         selector = pm.group(2)
         return [retcode, selector]
@@ -968,17 +967,20 @@ class WebWeixin(object):
 
         self._relogin()
 
+        logging.debug('[*] 微信网页版 ... 开动')
+        if self.DEBUG:
+            print(self)
+        logging.debug(self)
+
         if sys.platform.startswith('win'):
             import _thread
             _thread.start_new_thread(self.listenMsgMode())
         else:
             listenProcess = multiprocessing.Process(target=self.listenMsgMode)
             listenProcess.start()
-
         pass
 
     def _relogin(self, forceLogin = False):
-
         if not forceLogin:
             ## need login?
             if '' not in (self.skey, self.sid, self.uin, self.pass_ticket):
@@ -988,8 +990,14 @@ class WebWeixin(object):
                     'Skey': self.skey,
                     'DeviceID': self.deviceId,
                 }
-                self._echo('[*] 微信初始化 ...  from config')
-                if self.webwxinit():
+                # self._echo('[*] 微信初始化 ...  from config')
+                # if self.webwxinit():
+                #     pass
+                # else:
+                #     forceLogin = True
+                self.lastCheckTs = time.time()
+                [retcode, selector] = self.synccheck()
+                if retcode == 0:
                     pass
                 else:
                     forceLogin = True
@@ -1012,30 +1020,20 @@ class WebWeixin(object):
                 break
             self._run('[*] 正在登录 ... ', self.login)
             self._run('[*] 微信初始化 ... ', self.webwxinit)
-
+            self._run('[*] 开启状态通知 ... ', self.webwxstatusnotify)
+            self._run('[*] 获取联系人 ... ', self.webwxgetcontact)
+            self._echo('[*] 应有 %s 个联系人，读取到联系人 %d 个' %
+                       (self.MemberCount, len(self.MemberList)))
+            print()
+            self._echo('[*] 共有 %d 个群 | %d 个直接联系人 | %d 个特殊账号 ｜ %d 公众号或服务号' % (len(self.GroupList),
+                                                                             len(self.ContactList),
+                                                                             len(self.SpecialUsersList),
+                                                                             len(self.PublicUsersList)))
+            print()
+            self._run('[*] 获取群 ... ', self.webwxbatchgetcontact)
             # save config
             if self.wxRobot and self.wxRobot.saveWxConfig:
                 self.wxRobot.saveWxConfig(self)
-
-
-        self._run('[*] 开启状态通知 ... ', self.webwxstatusnotify)
-        self._run('[*] 获取联系人 ... ', self.webwxgetcontact)
-        self._echo('[*] 应有 %s 个联系人，读取到联系人 %d 个' %
-                   (self.MemberCount, len(self.MemberList)))
-        print()
-        self._echo('[*] 共有 %d 个群 | %d 个直接联系人 | %d 个特殊账号 ｜ %d 公众号或服务号' % (len(self.GroupList),
-                                                                         len(self.ContactList),
-                                                                         len(self.SpecialUsersList),
-                                                                         len(self.PublicUsersList)))
-        print()
-        self._run('[*] 获取群 ... ', self.webwxbatchgetcontact)
-        logging.debug('[*] 微信网页版 ... 开动')
-        # save config again
-        if self.wxRobot and self.wxRobot.saveWxConfig:
-            self.wxRobot.saveWxConfig(self)
-        if self.DEBUG:
-            print(self)
-        logging.debug(self)
 
 
     def stop2(self):
@@ -1141,7 +1139,7 @@ class WebWeixin(object):
             print('失败\n[*] 重新登录')
             logging.debug('%s... 失败' % (str))
             logging.debug('[*] 重新登录')
-            self._relogin(True)
+            self._relogin()
             #print('失败\n[*] 退出程序')
             #logging.debug('%s... 失败' % (str))
             #logging.debug('[*] 退出程序')
