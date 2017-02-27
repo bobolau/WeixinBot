@@ -1030,6 +1030,9 @@ class WebWeixin(object):
         print()
         self._run('[*] 获取群 ... ', self.webwxbatchgetcontact)
         logging.debug('[*] 微信网页版 ... 开动')
+        # save config again
+        if self.wxRobot and self.wxRobot.saveWxConfig:
+            self.wxRobot.saveWxConfig(self)
         if self.DEBUG:
             print(self)
         logging.debug(self)
@@ -1205,7 +1208,7 @@ class WebWeixin(object):
     def _post(self, url: object, params: object, jsonfmt: object = True) -> object:
         if jsonfmt:
             data = (json.dumps(params)).encode()
-            
+
             request = urllib.request.Request(url=url, data=data)
             request.add_header(
                 'ContentType', 'application/json; charset=UTF-8')
