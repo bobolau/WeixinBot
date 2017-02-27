@@ -411,6 +411,9 @@ class WebWeixin(object):
             self.SyncKey = dic['SyncKey']
             self.synckey = '|'.join(
                 [str(keyVal['Key']) + '_' + str(keyVal['Val']) for keyVal in self.SyncKey['List']])
+            ##TODO update synckey and SyncKey only
+            if self.wxRobot and self.wxRobot.saveWxConfig:
+                self.wxRobot.saveWxConfig(self)
         return dic
 
     def webwxsendmsg(self, word, to='filehelper'):
@@ -981,8 +984,9 @@ class WebWeixin(object):
     def _relogin(self, forceLogin = False):
         self._echo('[*] 微信网页版 ... 登录检查')
         logging.debug('[*] 微信网页版 ... 登录检查')
+
+        ## check config param
         if not forceLogin:
-            ## need login?
             if '' not in (self.skey, self.sid, self.uin, self.pass_ticket):
                 self.BaseRequest = {
                     'Uin': int(self.uin),
@@ -990,18 +994,30 @@ class WebWeixin(object):
                     'Skey': self.skey,
                     'DeviceID': self.deviceId,
                 }
-
-                if not self.syncHost:
-                    self.syncHost = 'wx2.qq.com'
-                self.lastCheckTs = time.time()
-                [retcode, selector] = self.synccheck()
-                if retcode == '0':
-                    pass
-                else:
-                    logging.debug('[*] 同步检查不成功, retcode=%s, selector=%s' %(retcode, selector) )
-                    forceLogin = True
             else:
+                logging.debug('[*] 检查微信无配置参数，需要重新登录')
                 forceLogin = True
+
+        ## do check by synccheck() and webwxinit()
+        if not forceLogin:
+            if not self.syncHost:
+                self.syncHost = 'wx2.qq.com'
+            [retcode, selector] = self.synccheck()
+            if retcode == '0':
+                pass
+            else:
+                logging.debug('[*] 同步检查不成功, retcode=%s, selector=%s' %(retcode, selector) )
+                self._echo('[*] 微信初始化 ... ')
+                if self.webwxinit():
+                    [retcode, selector] = self.synccheck()
+                    if retcode == '0':
+                        pass
+                    else:
+                        logging.debug('[*] 初始化后同步检查不成功, retcode=%s, selector=%s' % (retcode, selector))
+                        forceLogin = True
+                else:
+                    logging.debug('[*] 微信初始化不成功')
+                    forceLogin = True
 
         if forceLogin:
             while True:
