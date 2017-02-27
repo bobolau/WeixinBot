@@ -369,7 +369,6 @@ class WebWeixin(object):
             [retcode, selector] = self.synccheck()
             if retcode == '0':
                 return True
-        self.syncHost = 'wx2.qq.com'
         return False
 
     def synccheck(self):
@@ -967,7 +966,6 @@ class WebWeixin(object):
 
         self._relogin()
 
-        logging.debug('[*] 微信网页版 ... 开动')
         if self.DEBUG:
             print(self)
         logging.debug(self)
@@ -981,6 +979,8 @@ class WebWeixin(object):
         pass
 
     def _relogin(self, forceLogin = False):
+        self._echo('[*] 微信网页版 ... 登录检查')
+        logging.debug('[*] 微信网页版 ... 登录检查')
         if not forceLogin:
             ## need login?
             if '' not in (self.skey, self.sid, self.uin, self.pass_ticket):
@@ -990,16 +990,15 @@ class WebWeixin(object):
                     'Skey': self.skey,
                     'DeviceID': self.deviceId,
                 }
-                # self._echo('[*] 微信初始化 ...  from config')
-                # if self.webwxinit():
-                #     pass
-                # else:
-                #     forceLogin = True
+
+                if not self.syncHost:
+                    self.syncHost = 'wx2.qq.com'
                 self.lastCheckTs = time.time()
                 [retcode, selector] = self.synccheck()
-                if retcode == 0:
+                if retcode == '0':
                     pass
                 else:
+                    logging.debug('[*] 同步检查不成功, retcode=%s, selector=%s' %(retcode, selector) )
                     forceLogin = True
             else:
                 forceLogin = True
@@ -1034,7 +1033,6 @@ class WebWeixin(object):
             # save config
             if self.wxRobot and self.wxRobot.saveWxConfig:
                 self.wxRobot.saveWxConfig(self)
-
 
     def stop2(self):
         self.listenProcess.terminate()
