@@ -1030,6 +1030,9 @@ class WebWeixin(object):
         print()
         self._run('[*] 获取群 ... ', self.webwxbatchgetcontact)
         logging.debug('[*] 微信网页版 ... 开动')
+        # save config again
+        if self.wxRobot and self.wxRobot.saveWxConfig:
+            self.wxRobot.saveWxConfig(self)
         if self.DEBUG:
             print(self)
         logging.debug(self)
