@@ -759,7 +759,7 @@ class WebWeixin(object):
             logging.debug('[*] 你有新的消息，请注意查收')
 
             if self.DEBUG:
-                fn = 'msg' + str(int(random.random() * 1000)) + '.json'
+                fn = os.path.join(self.saveFolder,'msg' + str(int(random.random() * 10000)) + '.json')
                 with open(fn, 'w') as f:
                     f.write(json.dumps(msg))
                 print('[*] 该消息已储存到文件: ' + fn)
