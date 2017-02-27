@@ -126,17 +126,27 @@ class WxRobot(object):
         if msgType == 1 and self.re_command.match(content):
             command = self.re_command.search(content).group(0)
             logging.debug('[*] 接到命令：' + command + '，cotent=' + content)
+            self._process_command(webwx, msg, command)
             return
 
+        # group living
+        if fromUser[:2] == '@@':
+            living_num = self._get_group_living(webwx, msg)
+            if living_num:
+                self._process_group_living(webwx, msg)
+                return
 
         # auto reply message (robot)
         if msgType == 1:
+            # personal chat
             if not fromUser[:2] == '@@':
                 replyContent = self.talk2Robot(content, fromUser)
                 if webwx.webwxsendmsg(replyContent, fromUser):
                     logging.info('自动回复: ' + replyContent)
                 else:
                     logging.info('自动回复失败')
+                return
+            # group chat
             else:
                 if ":<br/>" in content:
                     [people, content] = content.split(':<br/>', 1)
@@ -148,13 +158,10 @@ class WxRobot(object):
                             logging.info('自动回复: ' + replyContent)
                         else:
                             logging.info('自动回复失败')
-        # group living
-        if fromUser[:2] == '@@':
-            self.process_group_living(webwx, msg)
+                return
 
 
-
-    def process_command(self, webwx, msg, command):
+    def _process_command(self, webwx, msg, command):
         # 群命令
         if msg['FromUserName'][:2] == '@@':
             # 群直播主群命令：申请直播|取消直播|设置主播
@@ -168,7 +175,11 @@ class WxRobot(object):
             pass
         return
 
-    def process_group_living(self, webwx, msg):
+    def _get_group_living(self, webwx, msg):
+        pass
+        return None
+
+    def _process_group_living(self, webwx, msg, living_num=None):
         msgType = msg['MsgType']
         fromUser = msg['FromUserName']
         srcName = webwx.getUserRemarkName(msg['FromUserName'])
@@ -205,7 +216,6 @@ class WxRobot(object):
                         logging.info('群转发图片成功')
                     else:
                         logging.info('群转发图片失败')
-            return
 
 
     def talk2Robot(self, info, userid, myid='robot'):

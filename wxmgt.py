@@ -32,7 +32,7 @@ def wx_start():
                 webwx.start2(wxrobot)
                 webwxs.append(webwx)
             f.close()
-    except:
+    except Exception:
         pass
 
     if len(webwxs) == 0:
@@ -51,10 +51,13 @@ def wx_start():
 
 
     while True:
-        text = input('')
-        if text == 'quit':
-            webwx.stop2()
-            exit()
+        try:
+            text = input('')
+            if text == 'quit':
+                webwx.stop2()
+                exit()
+        except Exception:
+            pass
 
 class UnicodeStreamFilter:
 
