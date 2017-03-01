@@ -3,9 +3,10 @@
 import sys
 import logging
 import random
+import multiprocessing
 from weixin import WebWeixin
 from wxrobot import WxRobot
-
+from wxdb import WxDb
 
 def catchKeyboardInterrupt(fn):
     def wrapper(*args):
@@ -18,10 +19,23 @@ def catchKeyboardInterrupt(fn):
 
 @catchKeyboardInterrupt
 def wx_start():
-    wxrobot = WxRobot()
+
+    wxdb = WxDb()
+    wxrobot = WxRobot(wxdb)
     webwxs = []
 
     ## load config from DB
+    listHosting = wxdb.getUnstartedWxRobot()
+    for hosting in listHosting:
+        print(hosting)
+        deviceId = hosting[7]
+        if not deviceId:
+            deviceId = 'e' + repr(random.random())[2:17]
+        try:
+            webwx = _webwx(deviceId, wxrobot)
+            webwxs.append(webwx)
+        except Exception:
+            continue
 
     ## load config from local file
     if len(webwxs) == 0:
@@ -69,8 +83,17 @@ def _webwx(deviceId, wxrobot=None, config=None):
     webwx = WebWeixin(deviceId)
     #webwx.DEBUG = True
     webwx.TimeOut = 30
-    webwx.start2(wxrobot, config)
+    _webwx_start(wxrobot, config)  #webwx.start2(wxrobot, config)
     return webwx
+
+def _webwx_start(wxrobot=None, config=None):
+    if sys.platform.startswith('win'):
+        import _thread
+        _thread.start_new_thread(_webwx.start2, (wxrobot, config))
+    else:
+        listenProcess = multiprocessing.Process(target=_webwx.start2, args=(wxrobot, config))
+        listenProcess.start()
+    pass
 
 class UnicodeStreamFilter:
 

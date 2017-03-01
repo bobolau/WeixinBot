@@ -9,11 +9,14 @@ import urllib.request, urllib.error, urllib.parse
 import http.cookiejar
 import requests
 import copy
+from weixin import WebWeixin
+from wxdb import WxDb
 
 
 class WxRobot(object):
 
-    def __init__(self):
+    def __init__(self, wxdb=None):
+        self.wxdb = wxdb
         self.re_command = re.compile(r'#(.{2,12})#')
         self.re_emoji = re.compile(r'<span class="emoji emoji([0-9a-zA-Z]{2,10})"></span>')
         self.saveFolder = os.path.join(os.getcwd(), 'saved')
@@ -86,6 +89,9 @@ class WxRobot(object):
 
     def _getfile_wxcookie(self, deviceId):
         return os.path.join(self.saveFolder, deviceId + '_cookie.txt')
+
+    def saveWxHandleMsg(self, webwx, r, selector='2'):
+        pass
 
     def handleWxMsg(self, webwx, msg):
         msgType = msg['MsgType']

@@ -303,8 +303,8 @@ class WebWeixin(object):
                 ContactList.remove(Contact)
         self.ContactList = ContactList
 
-        return dic['BaseResponse']['Ret'] == 0
-        #return True
+        #return dic['BaseResponse']['Ret'] == 0
+        return True
 
     def webwxbatchgetcontact(self):
         url = self.base_uri + \
@@ -751,6 +751,10 @@ class WebWeixin(object):
                                               dstName.strip(), content.replace('<br/>', '\n')))
 
     def handleMsg2(self, r, selector='2'):
+
+        if self.wxRobot and self.wxRobot.saveWxHandleMsg:
+            self.wxRobot.saveWxHandleMsg(self, r, selector)
+
         if selector == '2':
             self.handleMsg(r)
 
@@ -1153,7 +1157,7 @@ class WebWeixin(object):
             print('失败\n[*] 重新登录')
             logging.debug('%s... 失败' % (str))
             logging.debug('[*] 重新登录')
-            self._relogin()
+            #self._relogin()
             #print('失败\n[*] 退出程序')
             #logging.debug('%s... 失败' % (str))
             #logging.debug('[*] 退出程序')
