@@ -26,13 +26,13 @@ def wx_start():
 
     ## load config from DB
     listHosting = wxdb.getUnstartedWxRobot()
-    for hosting in listHosting:
-        print(hosting)
-        deviceId = hosting[7]
+    for config in listHosting:
+        deviceId = config['device_id']
         if not deviceId:
             deviceId = 'e' + repr(random.random())[2:17]
+            config['device_id'] = deviceId
         try:
-            webwx = _webwx(deviceId, wxrobot)
+            webwx = _webwx(deviceId, wxrobot, config)
             webwxs.append(webwx)
         except Exception:
             continue
@@ -83,17 +83,20 @@ def _webwx(deviceId, wxrobot=None, config=None):
     webwx = WebWeixin(deviceId)
     #webwx.DEBUG = True
     webwx.TimeOut = 30
-    _webwx_start(wxrobot, config)  #webwx.start2(wxrobot, config)
-    return webwx
-
-def _webwx_start(wxrobot=None, config=None):
+    #webwx.start2(wxrobot, config)
     if sys.platform.startswith('win'):
         import _thread
-        _thread.start_new_thread(_webwx.start2, (wxrobot, config))
+        _thread.start_new_thread(_webwx_start, (webwx, wxrobot, config))
     else:
-        listenProcess = multiprocessing.Process(target=_webwx.start2, args=(wxrobot, config))
+        listenProcess = multiprocessing.Process(target=_webwx_start, args=(webwx, wxrobot, config))
         listenProcess.start()
     pass
+
+    return webwx
+
+def _webwx_start(webwx, wxrobot=None, config=None):
+    webwx.start2(wxrobot, config)
+
 
 class UnicodeStreamFilter:
 

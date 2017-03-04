@@ -411,9 +411,9 @@ class WebWeixin(object):
             self.SyncKey = dic['SyncKey']
             self.synckey = '|'.join(
                 [str(keyVal['Key']) + '_' + str(keyVal['Val']) for keyVal in self.SyncKey['List']])
-            ##TODO update synckey and SyncKey only
-            if self.wxRobot and self.wxRobot.saveWxConfig:
-                self.wxRobot.saveWxConfig(self)
+            ##TODO update synkey/SynKeyS
+            if self.wxRobot and self.wxRobot.updateWxSync:
+                self.wxRobot.updateWxSync(self)
         return dic
 
     def webwxsendmsg(self, word, to='filehelper'):
@@ -878,11 +878,11 @@ class WebWeixin(object):
             if retcode == '1100':
                 print('[*] 你在手机上登出了微信，再见')
                 logging.debug('[*] 你在手机上登出了微信，再见')
-                break
+                #break
             if retcode == '1101':
                 print('[*] 你在其他地方登录了 WEB 版微信，再见')
                 logging.debug('[*] 你在其他地方登录了 WEB 版微信，再见')
-                break
+                #break
             elif retcode == '0':
                 if selector == '2':
                     r = self.webwxsync()
@@ -971,7 +971,11 @@ class WebWeixin(object):
         if self.wxRobot and self.wxRobot.loadWxConfig:
             self.wxRobot.loadWxConfig(self, config)
 
-        self._relogin()
+        if not self._relogin():
+            if self._relogin(True):
+                # save config
+                if self.wxRobot and self.wxRobot.saveWxConfig:
+                    self.wxRobot.saveWxConfig(self)
 
         if self.DEBUG:
             print(self)
@@ -989,8 +993,9 @@ class WebWeixin(object):
         self._echo('[*] 微信网页版 ... 登录检查')
         logging.debug('[*] 微信网页版 ... 登录检查')
 
-        ## check config param
+
         if not forceLogin:
+            ## 1. check config param
             if '' not in (self.skey, self.sid, self.uin, self.pass_ticket):
                 self.BaseRequest = {
                     'Uin': int(self.uin),
@@ -1000,10 +1005,9 @@ class WebWeixin(object):
                 }
             else:
                 logging.debug('[*] 检查微信无配置参数，需要重新登录')
-                forceLogin = True
+                return False
 
-        ## do check by synccheck() and webwxinit()
-        if not forceLogin:
+           ## 2. do check by synccheck() and webwxinit()
             if not self.syncHost:
                 self.syncHost = 'wx2.qq.com'
             [retcode, selector] = self.synccheck()
@@ -1018,10 +1022,10 @@ class WebWeixin(object):
                         pass
                     else:
                         logging.debug('[*] 初始化后同步检查不成功, retcode=%s, selector=%s' % (retcode, selector))
-                        forceLogin = True
+                        return False
                 else:
                     logging.debug('[*] 微信初始化不成功')
-                    forceLogin = True
+                    return False
 
         if forceLogin:
             while True:
@@ -1050,9 +1054,8 @@ class WebWeixin(object):
                                                                              len(self.PublicUsersList)))
             print()
             self._run('[*] 获取群 ... ', self.webwxbatchgetcontact)
-            # save config
-            if self.wxRobot and self.wxRobot.saveWxConfig:
-                self.wxRobot.saveWxConfig(self)
+
+            return True
 
     def stop2(self):
         self.listenProcess.terminate()
