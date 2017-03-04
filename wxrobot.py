@@ -40,12 +40,12 @@ class WxRobot(object):
         if config and self.wxdb.loadWxConfig:
             self.wxdb.loadWxConfig(webwx, config)
 
-    def saveWxConfig(self, webwx):
+    def saveWxConfig(self, webwx, config=None):
         if not webwx:
             return
 
         if  self.wxdb and self.wxdb.saveWxConfig:
-            self.wxdb.saveWxConfig(webwx)
+            self.wxdb.saveWxConfig(webwx, config)
 
         ## for local only
         with open(self._getfile_wxdump(webwx.deviceId), 'w') as f:
@@ -64,8 +64,9 @@ class WxRobot(object):
 
 
 
-    def updateWxSync(self, webwx):
-        pass
+    def updateWxSync(self, webwx, ignorCheck=False):
+        if self.wxdb and self.wxdb.updateWxSync:
+            self.wxdb.updateWxSync(webwx)
 
     def _getfile_wxdump(self, deviceId):
         return os.path.join(self.saveFolder, deviceId + '_dump.txt')
@@ -130,9 +131,10 @@ class WxRobot(object):
 
         # auto reply message (robot)
         if msgType == 1:
-            ## todo check slef
             # personal chat
             if not fromUser[:2] == '@@':
+                if fromUser == self.User['UserName']:
+                    return
                 replyContent = self.talk2Robot(content, fromUser)
                 if webwx.webwxsendmsg(replyContent, fromUser):
                     logging.info('自动回复: ' + replyContent)
@@ -143,6 +145,8 @@ class WxRobot(object):
             else:
                 if ":<br/>" in content:
                     [people, content] = content.split(':<br/>', 1)
+                    if people == self.User['UserName']:
+                        return
                     srcName = webwx.getUserRemarkName(people)
                     if content.startswith('@' + dstName):
                         content = content[(len(dstName) + 2):]

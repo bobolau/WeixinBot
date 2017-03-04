@@ -413,7 +413,7 @@ class WebWeixin(object):
                 [str(keyVal['Key']) + '_' + str(keyVal['Val']) for keyVal in self.SyncKey['List']])
             ##TODO update synkey/SynKeyS
             if self.wxRobot and self.wxRobot.updateWxSync:
-                self.wxRobot.updateWxSync(self)
+                self.wxRobot.updateWxSync(self, True)
         return dic
 
     def webwxsendmsg(self, word, to='filehelper'):
@@ -975,7 +975,7 @@ class WebWeixin(object):
             if self._relogin(True):
                 # save config
                 if self.wxRobot and self.wxRobot.saveWxConfig:
-                    self.wxRobot.saveWxConfig(self)
+                    self.wxRobot.saveWxConfig(self, config)
 
         if self.DEBUG:
             print(self)

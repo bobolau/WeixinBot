@@ -19,7 +19,6 @@ def catchKeyboardInterrupt(fn):
 
 @catchKeyboardInterrupt
 def wx_start():
-
     wxdb = WxDb()
     wxrobot = WxRobot(wxdb)
     webwxs = []
