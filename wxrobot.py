@@ -4,6 +4,7 @@ import logging
 import re
 import os
 import json
+import random
 import urllib.request, urllib.parse, urllib.error
 import urllib.request, urllib.error, urllib.parse
 import http.cookiejar
@@ -25,17 +26,14 @@ class WxRobot(object):
         if not webwx:
             return
 
-        ## load local
-        if not self.wxdb:
-            try:
-                with open(self._getfile_wxdump(webwx.deviceId), 'r') as f:
-                    webwx.__dict__.update(json.loads(f.read()))
-                    pass
-                if webwx.cookie:
-                    webwx.cookie.load(self._getfile_wxcookie(webwx.deviceId), ignore_expires=True, ignore_discard=True)
-            except:
-                pass
-            return
+        ## load local first
+        try:
+            with open(self._getfile_wxdump(webwx.deviceId), 'r') as f:
+                webwx.__dict__.update(json.loads(f.read()))
+            if webwx.cookie:
+                webwx.cookie.load(self._getfile_wxcookie(webwx.deviceId), ignore_expires=True, ignore_discard=True)
+        except:
+            pass
 
         if config and self.wxdb.loadWxConfig:
             self.wxdb.loadWxConfig(webwx, config)
@@ -62,23 +60,42 @@ class WxRobot(object):
             webwx.cookie.save(self._getfile_wxcookie(webwx.deviceId),ignore_expires=True,ignore_discard=True)
             pass
 
-
-
     def updateWxSync(self, webwx, ignorCheck=False):
         if self.wxdb and self.wxdb.updateWxSync:
-            self.wxdb.updateWxSync(webwx)
+            self.wxdb.updateWxSync(webwx, ignorCheck)
 
     def _getfile_wxdump(self, deviceId):
         return os.path.join(self.saveFolder, deviceId + '_dump.txt')
 
-    def _getfile_wxconfig(self, deviceId):
-        return os.path.join(self.saveFolder, deviceId + '_config.txt')
-
     def _getfile_wxcookie(self, deviceId):
         return os.path.join(self.saveFolder, deviceId + '_cookie.txt')
 
-    def saveWxHandleMsg(self, webwx, r, selector='2'):
+    def handleWxOriginMsg(self, webwx, r, selector='2'):
+        for msg in r['AddMsgList']:
+            print('[*] 你有新的消息，请注意查收')
+            self.handleWxMsg(webwx, msg)
         pass
+
+    def saveWxMsg(self, uin, msgid, msg):
+        if self.wxdb and self.wxdb.saveWxMsg:
+            self.wxdb.saveWxMsg(uin, msgid, msg)
+
+    def saveWxChat(self, webwx, chat):
+        if self.wxdb and self.wxdb.saveWxChat:
+            if chat and 'msg_content' in chat:
+                self.wxdb.saveWxChat(chat)
+
+            if chat and 'reply_content' in chat:
+                chat['type'] = '2'
+                chat['refer_id'] = chat['msg_id']
+                chat['msg_id'] = ''
+                chat['to_id'] = chat['from_id']
+                chat['to_name'] = chat['from_name']
+                chat['from_id'] = webwx.User['UserName']
+                chat['from_name'] = webwx.User['NickName']
+                chat['msg_content'] = chat['reply_content']
+                self.wxdb.saveWxChat(chat)
+
 
     def handleWxMsg(self, webwx, msg):
         msgType = msg['MsgType']
@@ -87,6 +104,30 @@ class WxRobot(object):
         dstName = webwx.getUserRemarkName(msg['ToUserName'])
         content = msg['Content'].replace('&lt;', '<').replace('&gt;', '>')
         msgid = msg['MsgId']
+
+        self.saveWxMsg(webwx.uin, msgid, msg)
+
+        chat = {}
+        if self.saveWxChat:
+            chat =  json.loads(json.dumps(msg))
+            chat['uin'] = webwx.uin
+            chat['type'] = '0'
+            chat['from_id'] = fromUser
+            chat['from_name'] = srcName
+            chat['to_id'] = chat['ToUserName']
+            chat['to_name'] = dstName
+            chat['msg_type'] = msgType
+            chat['msg_id'] = msgid
+            chat['refer_id'] = ''
+            chat['msg_content'] = content
+            chat['msg_file'] = ''
+            chat['msg_other'] = ''
+            if fromUser[:2] == '@@':
+                chat['room_id'] = fromUser
+                chat['room_name'] = srcName
+            else:
+                chat['room_id'] = ''
+                chat['room_name'] = ''
 
         # verify user
         if msgType == 37:
@@ -106,6 +147,20 @@ class WxRobot(object):
                     person2 = pm.group(2)
                     replyContent = '欢迎%s(%s好友)加入 @%s' % (person2, person1, person2)
                     webwx.webwxsendmsg(replyContent, fromUser)
+                    #record
+                    if self.saveWxChat:
+                        chat['room_id'] = fromUser
+                        chat['type'] = '1'
+                        self.saveWxChat(webwx, chat)
+                        chat['type'] = '2'
+                        chat['msg_id'] = ''
+                        chat['refer_id'] = msgid
+                        chat['from_id'] = chat['ToUserName']
+                        chat['from_name'] = dstName
+                        chat['to_id'] = fromUser
+                        chat['to_name'] = srcName
+                        chat['msg_content'] = replyContent
+                        self.saveWxChat(webwx, chat)
             return
 
         if msgType == 10002:
@@ -119,6 +174,11 @@ class WxRobot(object):
         if msgType == 1 and self.re_command.match(content):
             command = self.re_command.search(content).group(0)
             logging.debug('[*] 接到命令：' + command + '，cotent=' + content)
+            if self.saveWxChat:
+                chat['room_id'] = fromUser
+                chat['type'] = '1'
+                chat['msg_other'] = command
+                self.saveWxChat(webwx, chat)
             self._process_command(webwx, msg, command)
             return
 
@@ -133,30 +193,38 @@ class WxRobot(object):
         if msgType == 1:
             # personal chat
             if not fromUser[:2] == '@@':
-                if fromUser == self.User['UserName']:
+                if fromUser == webwx.User['UserName']:
+                    if self.saveWxChat:
+                        self.saveWxChat(webwx, chat)
                     return
+
                 replyContent = self.talk2Robot(content, fromUser)
                 if webwx.webwxsendmsg(replyContent, fromUser):
-                    logging.info('自动回复: ' + replyContent)
-                else:
-                    logging.info('自动回复失败')
+                    chat['reply_content'] = replyContent
+                if self.saveWxChat:
+                    self.saveWxChat(webwx, chat)
                 return
             # group chat
-            else:
-                if ":<br/>" in content:
-                    [people, content] = content.split(':<br/>', 1)
-                    if people == self.User['UserName']:
-                        return
-                    srcName = webwx.getUserRemarkName(people)
-                    if content.startswith('@' + dstName):
-                        content = content[(len(dstName) + 2):]
-                        replyContent = '@' + srcName + '  ' + self.talk2Robot(content, srcName)
-                        if webwx.webwxsendmsg(replyContent, fromUser):
-                            logging.info('自动回复: ' + replyContent)
-                        else:
-                            logging.info('自动回复失败')
+            elif ":<br/>" in content:
+                [people, content] = content.split(':<br/>', 1)
+                srcName = webwx.getUserRemarkName(people)
+                chat['from_id'] = people
+                chat['from_name'] = srcName
+                chat['msg_content'] = content
+                if people == webwx.User['UserName']:
+                    if self.saveWxChat:
+                        self.saveWxChat(webwx, chat)
+                    return
+                if content.startswith('@' + dstName):
+                    content = content[(len(dstName) + 2):]
+                    chat['msg_content'] = content
+                    replyContent = '@' + srcName + '  ' + self.talk2Robot(content, srcName)
+                    if webwx.webwxsendmsg(replyContent, fromUser):
+                                #logging.info('自动回复: ' + replyContent)
+                                chat['reply_content'] = replyContent
+                if self.saveWxChat:
+                    self.saveWxChat(webwx, chat)
                 return
-
 
     def _process_command(self, webwx, msg, command):
         # 群命令

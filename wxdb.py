@@ -10,7 +10,7 @@ import psycopg2.pool
 
 class WxDb(object):
     def __init__(self):
-        self.pool = self._getpool()
+        self.pool = self._createpool()
 
     def getRobots(self):
         pass
@@ -25,8 +25,8 @@ class WxDb(object):
         return self._dbFetchAll(sql)
 
     def loadWxConfig(self, webwx, config):
-        if config and webwx.uin=='' and not config.get('uin')=='':
-            webwx.uin = config.get('uin')
+        if config and webwx.uin=='' and not config.get('wx_uin')=='':
+            webwx.uin = config.get('wx_uin')
         data = self._loadWxLastSync(webwx.deviceId, webwx.uin)
         if data:
             webwx.uin = data["uin"]
@@ -42,11 +42,11 @@ class WxDb(object):
         sql = ''
         if config:
             sql = 'select * from robot_wx_hosting ' \
-                  'where device_id=\'%s\' and (wx_uin is null or wx_uin=\'%s\')' \
+                  'where device_id=\'%s\' and (wx_uin is null or wx_uin=\'%s\'); ' \
                   %(webwx.deviceId, webwx.uin)
         else:
             sql = 'select * from robot_wx_hosting ' \
-                  'where device_id=\'%s\' and uin=\'%s\' ' \
+                  'where device_id=\'%s\' and uin=\'%s\' ;' \
                   % (webwx.deviceId, webwx.uin)
         data = self._dbFetchOne(sql)
         if data:
@@ -56,7 +56,7 @@ class WxDb(object):
                   % (webwx.deviceId, webwx.uin, self._getLocalServer(), webwx.User['NickName'], data['id'])
         else:
             remarks = ''
-            sql = 'insert into robot_wx_hosting(account, type, device_service, device_id, wx_uin, wx_name' \
+            sql = 'insert into robot_wx_hosting(account, type, device_server, device_id, wx_uin, wx_name' \
                   ', status, created_time, updated_time, remarks) ' \
                   'values(\'temp\',\'temp\',\'%s\', \'%s\', \'%s\', \'%s\', 1, current_timestamp, current_timestamp, \'%s\'); ' \
                   %(self._getLocalServer(),webwx.deviceId, webwx.uin, webwx.User['NickName'], remarks)
@@ -74,8 +74,8 @@ class WxDb(object):
     def updateWxSync(self, webwx, ignorCheck=False):
         if ignorCheck:
             sql = 'update wx_synckey set synckey=\'%s\', jsonsync=\'%s\', updated_time=current_timestamp ' \
-                  'where device_id=\'%s\' and uin=\'%s\' and sid=\'%s\' and skey=\'%s\' and pass_ticket=\'%s\' ' \
-                  % (webwx.deviceId, webwx.uin, webwx.sid, webwx.skey, webwx.pass_ticket)
+                  'where device_id=\'%s\' and uin=\'%s\' and sid=\'%s\' and skey=\'%s\' and pass_ticket=\'%s\' ;' \
+                  % (webwx.synckey, json.dumps(webwx.SyncKey),webwx.deviceId, webwx.uin, webwx.sid, webwx.skey, webwx.pass_ticket)
             return self._dbExecuteSql(sql)
 
         sql = 'select * from wx_synckey t ' \
@@ -95,7 +95,21 @@ class WxDb(object):
                      , webwx.uuid, webwx.base_uri, webwx.User['UserName'], webwx.synckey, json.dumps(webwx.SyncKey))
         return self._dbExecuteSql(sql)
 
-    def saveWxChat(self):
+    def saveWxMsg(self, uin, msgid, msg):
+        sql = 'insert into wx_msg(uin, msgid, jsonmsg, updated_time) values(%s,%s,%s, current_timestamp);'
+        self._dbExecuteSql(sql,(uin, msgid, json.dumps(msg, indent=4, ensure_ascii=False)))
+        pass
+
+    def saveWxChat(self, chat):
+        sql = 'insert into robot_wx_chat(wx_uin, type, msg_id, refer_id' \
+              ', from_id, from_name, to_id, to_name, room_id, room_name' \
+              ', msg_type, msg_content, msg_file, msg_other, updated_time) ' \
+              'values(%s, %s, %s, %s' \
+              ', %s, %s, %s, %s, %s, %s' \
+              ', %s, %s, %s, %s, current_timestamp);'
+        self._dbExecuteSql(sql, (chat['uin'], chat['type'], chat['msg_id'], chat['refer_id']
+                                 ,chat['from_id'],chat['from_name'],chat['to_id'],chat['to_name'],chat['room_id'],chat['room_name']
+                                 ,chat['msg_type'],chat['msg_content'],chat['msg_file'],chat['msg_other']))
         pass
 
 
@@ -106,41 +120,63 @@ class WxDb(object):
         return serverName
 
     def _dbFetchAll(self, sql):
-        conn = self._conn()
-        cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-        cur.execute(sql)
-        rows = cur.fetchall()
-        conn.commit()
-        cur.close()
-        conn.close()
-        return rows
-
-    def _dbFetchOne(self, sql):
-        conn = self._conn()
-        cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-        cur.execute(sql)
-        data = cur.fetchone()
-        conn.commit()
-        cur.close()
-        conn.close()
-        return data
-
-    def _dbExecuteSql(self, sql, *args):
-        conn = self._conn()
-        cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-        if args:
-            cur.execute(sql, args)
-        else:
+        conn = None
+        try:
+            conn = self.pool.getconn()
+            cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
             cur.execute(sql)
-        conn.commit()
-        cur.close()
-        conn.close()
+            rows = cur.fetchall()
+            conn.commit()
+            cur.close()
+            return rows
+        except Exception as e:
+            print(e)
+        finally:
+            if conn:
+                self.pool.putconn(conn)
         return
 
-    def _conn(self):
+    def _dbFetchOne(self, sql):
+        conn = None
+        try:
+            conn = self.pool.getconn()
+            cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+            cur.execute(sql)
+            data = cur.fetchone()
+            conn.commit()
+            cur.close()
+            return data
+        except Exception as e:
+            print(e)
+        finally:
+            if conn:
+                self.pool.putconn(conn)
+        return
+
+    def _dbExecuteSql(self, sql, args=None):
+        try:
+            conn = self.pool.getconn()
+            cur = conn.cursor()
+            if args:
+                cur.execute(sql, args)
+            else:
+                cur.execute(sql)
+            conn.commit()
+            cur.close()
+            self.pool.putconn(conn)
+        except Exception as e:
+            print(e)
+            if conn:
+                self.pool.putconn(conn)
+        finally:
+            pass
+
+        return
+
+    def _getconn(self):
         return self.pool.getconn()
 
-    def _getpool(self):
+    def _createpool(self):
         pool = psycopg2.pool.ThreadedConnectionPool(2,10, database='postgres', user='postgres', password='open2018', host='112.124.35.123', port='5701')
         return pool
 

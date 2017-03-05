@@ -436,6 +436,32 @@ class WebWeixin(object):
         data = json.dumps(params, ensure_ascii=False).encode('utf8')
         r = requests.post(url, data=data, headers=headers)
         dic = r.json()
+        ##robot
+        if self.wxRobot and self.wxRobot.saveWxMsg:
+            self.wxRobot.saveWxMsg(self.uin, clientMsgId, params['Msg'])
+
+        return dic['BaseResponse']['Ret'] == 0
+
+    def webwxverifyuser(self, to, ticket):
+        url = self.base_uri + \
+              '/webwxverifyuser?s=%s&pass_ticket=%s' % (int(time.time()), self.pass_ticket)
+        params = {
+            'BaseRequest': self.BaseRequest,
+            'Opcode': 3,
+            'VerifyUserListSize': 1,
+            "VerifyUserList": [{
+                "Value": to,
+                "VerifyUserTicket": ticket
+            }],
+            "VerifyContent": "",
+            "SceneListCount": 1,
+            "SceneList": [33],
+            "skey": self.skey
+        }
+        headers = {'content-type': 'application/json; charset=UTF-8'}
+        data = json.dumps(params, ensure_ascii=False).encode('utf8')
+        r = requests.post(url, data=data, headers=headers)
+        dic = r.json()
         return dic['BaseResponse']['Ret'] == 0
 
     def webwxuploadmedia(self, image_name):
@@ -532,6 +558,9 @@ class WebWeixin(object):
         data = json.dumps(data_json, ensure_ascii=False).encode('utf8')
         r = requests.post(url, data=data, headers=headers)
         dic = r.json()
+        ##robot
+        if self.wxRobot and self.wxRobot.saveWxMsg:
+            self.wxRobot.saveWxMsg(self.uin, clientMsgId, data_json['Msg'])
         return dic['BaseResponse']['Ret'] == 0
 
     def webwxsendmsgemotion(self, user_id, media_id):
@@ -752,10 +781,9 @@ class WebWeixin(object):
 
     def handleMsg2(self, r, selector='2'):
 
-        if self.wxRobot and self.wxRobot.saveWxHandleMsg:
-            self.wxRobot.saveWxHandleMsg(self, r, selector)
-
-        if selector == '2':
+        if self.wxRobot and self.wxRobot.handleWxOriginMsg:
+            self.wxRobot.handleWxOriginMsg(self, r, selector)
+        elif selector == '2':
             self.handleMsg(r)
 
     def handleMsg(self, r):
