@@ -20,27 +20,30 @@ def catchKeyboardInterrupt(fn):
 def wx_start():
     wxrobot = WxRobot()
     webwxs = []
-    try:
-        with open('wxrobots.txt', 'r') as f:
-            for line in f.readlines():  # 依次读取每行
-                line = line.strip()  # 去掉每行头尾空白
-                if not len(line) or line.startswith('#'):  # 判断是否是空行或注释行
-                    continue  # 是的话，跳过不处理
-                webwx = WebWeixin(line)
-                webwx.DEBUG = True
-                webwx.TimeOut = 30
-                webwx.start2(wxrobot)
-                webwxs.append(webwx)
-            f.close()
-    except Exception:
-        pass
 
+    ## load config from DB
+
+    ## load config from local file
+    if len(webwxs) == 0:
+        try:
+            with open('wxrobots.txt', 'r') as f:
+                for line in f.readlines():  # 依次读取每行
+                    line = line.strip()  # 去掉每行头尾空白
+                    if not len(line) or line.startswith('#'):  # 判断是否是空行或注释行
+                        continue  # 是的话，跳过不处理
+                    try:
+                        webwx = _webwx(line, wxrobot)
+                        webwxs.append(webwx)
+                    except Exception:
+                        continue
+                f.close()
+        except Exception:
+            pass
+
+    ## create new device and save in local
     if len(webwxs) == 0:
         deviceId = 'e' + repr(random.random())[2:17]
-        webwx = WebWeixin(deviceId)
-        webwx.DEBUG = True
-        webwx.TimeOut = 30
-        webwx.start2(wxrobot)
+        webwx = _webwx(deviceId, wxrobot)
         webwxs.append(webwx)
         try:
             with open('wxrobots.txt', 'w') as f:
@@ -49,15 +52,25 @@ def wx_start():
         except:
             pass
 
-
     while True:
         try:
             text = input('')
             if text == 'quit':
-                webwx.stop2()
+                for webwx in webwxs:
+                    webwx.stop2()
                 exit()
+            elif text[:3] == 'cl ':
+                # TODO command line
+                pass
         except Exception:
             pass
+
+def _webwx(deviceId, wxrobot=None, config=None):
+    webwx = WebWeixin(deviceId)
+    #webwx.DEBUG = True
+    webwx.TimeOut = 30
+    webwx.start2(wxrobot, config)
+    return webwx
 
 class UnicodeStreamFilter:
 
