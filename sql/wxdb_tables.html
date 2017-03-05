@@ -1,0 +1,670 @@
+
+<html>
+<head><meta http-equiv="content-type" content="text/html; charset=UTF-8"></head>
+<body>
+<h5 align="right" style="color: gray; ">Snapshot on 2017-03-05 14:15:19</h5>
+<h3>Schema: public</h3>
+<br>
+<h4>wx_synckey</h4>
+<table border=1 width=75%>
+<tr>
+	<th width=35%>Field</th>
+	<th width=30%>Type</th>
+	<th width=15%>Allow Null</th>
+	<th width=20%>Default Value</th>
+</tr>
+<tr>
+	<td width=35%>id</td>
+	<td width=30%>int8</td>
+	<td width=15%>No</td>
+	<td width=20%>nextval('wx_synckey_id_seq'::regclass)</td>
+</tr>
+<tr>
+	<td width=35%>device_id</td>
+	<td width=30%>varchar(50)</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>uin</td>
+	<td width=30%>varchar(50)</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>sid</td>
+	<td width=30%>varchar(100)</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>skey</td>
+	<td width=30%>varchar(100)</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>pass_ticket</td>
+	<td width=30%>varchar(100)</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>uuid</td>
+	<td width=30%>varchar</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>created_time</td>
+	<td width=30%>timestamp(6) WITH TIME ZONE</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>synckey</td>
+	<td width=30%>varchar(500)</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>jsonsync</td>
+	<td width=30%>varchar(500)</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>updated_time</td>
+	<td width=30%>timestamp(6) WITH TIME ZONE</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>username</td>
+	<td width=30%>varchar(100)</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>error_code</td>
+	<td width=30%>varchar(20)</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>exited_time</td>
+	<td width=30%>timestamp(6) WITH TIME ZONE</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>cookie</td>
+	<td width=30%>varchar(2000)</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>base_uri</td>
+	<td width=30%>varchar(100)</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+</table>
+<br>
+<h4>robot_wx_chat</h4>
+<table border=1 width=75%>
+<tr>
+	<th width=35%>Field</th>
+	<th width=30%>Type</th>
+	<th width=15%>Allow Null</th>
+	<th width=20%>Default Value</th>
+</tr>
+<tr>
+	<td width=35%>id</td>
+	<td width=30%>int4</td>
+	<td width=15%>No</td>
+	<td width=20%>nextval('robot_wx_chat_id_seq'::regclass)</td>
+</tr>
+<tr>
+	<td width=35%>hosting_id</td>
+	<td width=30%>int8</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>wx_uin</td>
+	<td width=30%>varchar(100)</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>type</td>
+	<td width=30%>varchar(20)</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>msg_id</td>
+	<td width=30%>varchar(100)</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>refer_id</td>
+	<td width=30%>varchar(100)</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>from_id</td>
+	<td width=30%>varchar(100)</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>from_name</td>
+	<td width=30%>varchar(100)</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>to_id</td>
+	<td width=30%>varchar(100)</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>to_name</td>
+	<td width=30%>varchar(100)</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>room_id</td>
+	<td width=30%>varchar(100)</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>room_name</td>
+	<td width=30%>varchar(100)</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>msg_type</td>
+	<td width=30%>varchar(20)</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>msg_content</td>
+	<td width=30%>varchar(2000)</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>msg_file</td>
+	<td width=30%>varchar(100)</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>msg_other</td>
+	<td width=30%>varchar(2000)</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>updated_time</td>
+	<td width=30%>timestamp(6) WITH TIME ZONE</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+</table>
+<br>
+<h4>robot_ai_config</h4>
+<table border=1 width=75%>
+<tr>
+	<th width=35%>Field</th>
+	<th width=30%>Type</th>
+	<th width=15%>Allow Null</th>
+	<th width=20%>Default Value</th>
+</tr>
+<tr>
+	<td width=35%>id</td>
+	<td width=30%>int4</td>
+	<td width=15%>No</td>
+	<td width=20%>nextval('robot_ai_config_id_seq'::regclass)</td>
+</tr>
+<tr>
+	<td width=35%>ai_num</td>
+	<td width=30%>varchar(50)</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>ai_props</td>
+	<td width=30%>json</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>ai_tags</td>
+	<td width=30%>json</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>status</td>
+	<td width=30%>int2</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>updated_time</td>
+	<td width=30%>timestamp(6) WITH TIME ZONE</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+</table>
+<br>
+<h4>robot_wx_living</h4>
+<table border=1 width=75%>
+<tr>
+	<th width=35%>Field</th>
+	<th width=30%>Type</th>
+	<th width=15%>Allow Null</th>
+	<th width=20%>Default Value</th>
+</tr>
+<tr>
+	<td width=35%>id</td>
+	<td width=30%>int4</td>
+	<td width=15%>No</td>
+	<td width=20%>nextval('robot_wx_living_id_seq'::regclass)</td>
+</tr>
+<tr>
+	<td width=35%>account</td>
+	<td width=30%>varchar(50)</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>living_type</td>
+	<td width=30%>varchar(20)</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>living_num</td>
+	<td width=30%>varchar(50)</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>living_title</td>
+	<td width=30%>varchar(50)</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>living_desc</td>
+	<td width=30%>varchar(500)</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>chatroom_id</td>
+	<td width=30%>varchar(50)</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>chatroom_name</td>
+	<td width=30%>varchar(50)</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>anchor</td>
+	<td width=30%>varchar(100)</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>hosting_id</td>
+	<td width=30%>int8</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>hosting_uin</td>
+	<td width=30%>varchar(50)</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>status</td>
+	<td width=30%>int2</td>
+	<td width=15%>Yes</td>
+	<td width=20%>1</td>
+</tr>
+<tr>
+	<td width=35%>created_time</td>
+	<td width=30%>timestamp(6) WITH TIME ZONE</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>updated_time</td>
+	<td width=30%>timestamp(6) WITH TIME ZONE</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>start_time</td>
+	<td width=30%>timestamp(6) WITH TIME ZONE</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>end_time</td>
+	<td width=30%>timestamp(6) WITH TIME ZONE</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>remarks</td>
+	<td width=30%>varchar(255)</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+</table>
+<br>
+<h4>wx_user</h4>
+<table border=1 width=75%>
+<tr>
+	<th width=35%>Field</th>
+	<th width=30%>Type</th>
+	<th width=15%>Allow Null</th>
+	<th width=20%>Default Value</th>
+</tr>
+<tr>
+	<td width=35%>id</td>
+	<td width=30%>int4</td>
+	<td width=15%>No</td>
+	<td width=20%>nextval('wx_user_id_seq'::regclass)</td>
+</tr>
+<tr>
+	<td width=35%>Uin</td>
+	<td width=30%>varchar(50)</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>UserName</td>
+	<td width=30%>varchar(50)</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>NickName</td>
+	<td width=30%>varchar(50)</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>Sex</td>
+	<td width=30%>varchar(10)</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>HeadImg</td>
+	<td width=30%>varchar(100)</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>jsonInfo</td>
+	<td width=30%>jsonb</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>jsonTag</td>
+	<td width=30%>jsonb</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>updated_time</td>
+	<td width=30%>timestamp(6) WITH TIME ZONE</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+</table>
+<br>
+<h4>robot_wx_hosting</h4>
+<table border=1 width=75%>
+<tr>
+	<th width=35%>Field</th>
+	<th width=30%>Type</th>
+	<th width=15%>Allow Null</th>
+	<th width=20%>Default Value</th>
+</tr>
+<tr>
+	<td width=35%>id</td>
+	<td width=30%>int4</td>
+	<td width=15%>No</td>
+	<td width=20%>nextval('robot_wx_hosting_id_seq'::regclass)</td>
+</tr>
+<tr>
+	<td width=35%>account</td>
+	<td width=30%>varchar(50)</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>type</td>
+	<td width=30%>varchar(20)</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>device_server</td>
+	<td width=30%>varchar(50)</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>device_id</td>
+	<td width=30%>varchar(50)</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>wx_uin</td>
+	<td width=30%>varchar(50)</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>wx_name</td>
+	<td width=30%>varchar(50)</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>wx_props</td>
+	<td width=30%>json</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>wx_cookie</td>
+	<td width=30%>varchar(500)</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>hosting_props</td>
+	<td width=30%>json</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>ai_num</td>
+	<td width=30%>varchar(20)</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>status</td>
+	<td width=30%>int2</td>
+	<td width=15%>Yes</td>
+	<td width=20%>1</td>
+</tr>
+<tr>
+	<td width=35%>created_time</td>
+	<td width=30%>timestamp(6) WITH TIME ZONE</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>updated_time</td>
+	<td width=30%>timestamp(6) WITH TIME ZONE</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>remarks</td>
+	<td width=30%>varchar(255)</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>priority</td>
+	<td width=30%>int2</td>
+	<td width=15%>Yes</td>
+	<td width=20%>0</td>
+</tr>
+</table>
+<br>
+<h4>wx_msg</h4>
+<table border=1 width=75%>
+<tr>
+	<th width=35%>Field</th>
+	<th width=30%>Type</th>
+	<th width=15%>Allow Null</th>
+	<th width=20%>Default Value</th>
+</tr>
+<tr>
+	<td width=35%>id</td>
+	<td width=30%>int4</td>
+	<td width=15%>No</td>
+	<td width=20%>nextval('wx_msg_id_seq'::regclass)</td>
+</tr>
+<tr>
+	<td width=35%>uin</td>
+	<td width=30%>varchar(50)</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>msgid</td>
+	<td width=30%>varchar(50)</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>jsonmsg</td>
+	<td width=30%>jsonb</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>updated_time</td>
+	<td width=30%>timestamp(6) WITH TIME ZONE</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+</table>
+<br>
+<h4>wx_contact</h4>
+<table border=1 width=75%>
+<tr>
+	<th width=35%>Field</th>
+	<th width=30%>Type</th>
+	<th width=15%>Allow Null</th>
+	<th width=20%>Default Value</th>
+</tr>
+<tr>
+	<td width=35%>id</td>
+	<td width=30%>int4</td>
+	<td width=15%>No</td>
+	<td width=20%>nextval('wx_contact_id_seq'::regclass)</td>
+</tr>
+<tr>
+	<td width=35%>OwnerUin</td>
+	<td width=30%>varchar(50)</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>Uin</td>
+	<td width=30%>varchar(50)</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>UserName</td>
+	<td width=30%>varchar(50)</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>NickName</td>
+	<td width=30%>varchar(50)</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>HeadImg</td>
+	<td width=30%>varchar(100)</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>Sex</td>
+	<td width=30%>varchar(10)</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>ContactFlag</td>
+	<td width=30%>varchar(10)</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>jsonContact</td>
+	<td width=30%>jsonb</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>updated_time</td>
+	<td width=30%>timestamp(6) WITH TIME ZONE</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+<tr>
+	<td width=35%>last_action</td>
+	<td width=30%>varchar(20)</td>
+	<td width=15%>Yes</td>
+	<td width=20%></td>
+</tr>
+</table>
+</body>
+</html>

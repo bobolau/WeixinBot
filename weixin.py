@@ -904,13 +904,13 @@ class WebWeixin(object):
                 print('retcode: %s, selector: %s' % (retcode, selector))
             logging.debug('retcode: %s, selector: %s' % (retcode, selector))
             if retcode == '1100':
-                print('[*] 你在手机上登出了微信，再见')
-                logging.debug('[*] 你在手机上登出了微信，再见')
-                #break
+                print('[*] 你在手机上登出了微信，再见%s' % (self.User['NickName']))
+                logging.debug('[*] 你在手机上登出了微信，再见%s' % (self.User['NickName']))
+                break
             if retcode == '1101':
-                print('[*] 你在其他地方登录了 WEB 版微信，再见')
-                logging.debug('[*] 你在其他地方登录了 WEB 版微信，再见')
-                #break
+                print('[*] 你在其他地方登录了 WEB 版微信，再见%s' % (self.User['NickName']))
+                logging.debug('[*] 你在其他地方登录了 WEB 版微信，再见%s' % (self.User['NickName']))
+                break
             elif retcode == '0':
                 if selector == '2':
                     r = self.webwxsync()
@@ -999,8 +999,9 @@ class WebWeixin(object):
         if self.wxRobot and self.wxRobot.loadWxConfig:
             self.wxRobot.loadWxConfig(self, config)
 
+
         if not self._relogin():
-            if self._relogin(True):
+            if self._relogin(True, config):
                 # save config
                 if self.wxRobot and self.wxRobot.saveWxConfig:
                     self.wxRobot.saveWxConfig(self, config)
@@ -1017,10 +1018,12 @@ class WebWeixin(object):
             listenProcess.start()
         pass
 
-    def _relogin(self, forceLogin = False):
-        self._echo('[*] 微信网页版 ... 登录检查')
-        logging.debug('[*] 微信网页版 ... 登录检查')
-
+    def _relogin(self, forceLogin = False, config = None):
+        # self._echo('[*] 微信网页版 ... 登录检查')
+        # logging.debug('[*] 微信网页版 ... 登录检查')
+        if config and 'wx_name' in config:
+            self._echo('[*] 微信网页版 ... 上次登录用户：%s' % (config['wx_name']))
+            logging.debug('[*] 微信网页版 ... 上次登录用户：%s' % (config['wx_name']))
 
         if not forceLogin:
             ## 1. check config param
@@ -1063,6 +1066,8 @@ class WebWeixin(object):
                 logging.debug('[*] 微信网页版 ... 开动')
                 self.genQRCode()
                 print('[*] 请使用微信扫描二维码以登录 ... ')
+                if config and 'wx_name' in config:
+                    print('[*]  ... 上次登录用户：%s' % (config['wx_name']))
                 if not self.waitForLogin():
                     continue
                     print('[*] 请在手机上点击确认以登录 ... ')

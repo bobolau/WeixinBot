@@ -21,7 +21,7 @@ class WxDb(object):
     def getUnstartedWxRobot(self):
         sql = 'select * from robot_wx_hosting t ' \
               'where t.status=1 and (t.device_server is null or t.device_server=\'%s\') ' \
-              'order by t.priority desc;' %(self._getLocalServer())
+              'order by t.device_server desc, t.priority desc;' %(self._getLocalServer())
         return self._dbFetchAll(sql)
 
     def loadWxConfig(self, webwx, config):
@@ -39,10 +39,12 @@ class WxDb(object):
             webwx.SyncKey = json.loads(data["jsonsync"])
 
     def saveWxConfig(self, webwx, config=None):
+
+        ## check hosting
         sql = ''
         if config:
             sql = 'select * from robot_wx_hosting ' \
-                  'where device_id=\'%s\' and (wx_uin is null or wx_uin=\'%s\'); ' \
+                  'where device_id=\'%s\' and (wx_uin is null or wx_uin=\'\' or wx_uin=\'%s\'); ' \
                   %(webwx.deviceId, webwx.uin)
         else:
             sql = 'select * from robot_wx_hosting ' \
@@ -64,6 +66,9 @@ class WxDb(object):
 
         self.updateWxSync(webwx)
 
+
+    def updateWxUser(self, webwx, ignorCheck=False):
+        pass
 
     def _loadWxLastSync(self, device_id, uin):
         sql = 'select * from wx_synckey t ' \
@@ -94,6 +99,7 @@ class WxDb(object):
                   % (webwx.deviceId, webwx.uin, webwx.sid, webwx.skey, webwx.pass_ticket
                      , webwx.uuid, webwx.base_uri, webwx.User['UserName'], webwx.synckey, json.dumps(webwx.SyncKey))
         return self._dbExecuteSql(sql)
+
 
     def saveWxMsg(self, uin, msgid, msg):
         sql = 'insert into wx_msg(uin, msgid, jsonmsg, updated_time) values(%s,%s,%s, current_timestamp);'

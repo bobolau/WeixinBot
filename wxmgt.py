@@ -33,6 +33,7 @@ def wx_start():
         try:
             webwx = _webwx(deviceId, wxrobot, config)
             webwxs.append(webwx)
+            break  ##for test
         except Exception:
             continue
 
@@ -40,10 +41,10 @@ def wx_start():
     if len(webwxs) == 0:
         try:
             with open('wxrobots.txt', 'r') as f:
-                for line in f.readlines():  # 依次读取每行
-                    line = line.strip()  # 去掉每行头尾空白
-                    if not len(line) or line.startswith('#'):  # 判断是否是空行或注释行
-                        continue  # 是的话，跳过不处理
+                for line in f.readlines():
+                    line = line.strip()
+                    if not len(line) or line.startswith('#'):
+                        continue
                     try:
                         webwx = _webwx(line, wxrobot)
                         webwxs.append(webwx)

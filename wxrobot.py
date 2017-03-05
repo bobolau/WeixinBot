@@ -21,6 +21,7 @@ class WxRobot(object):
         self.re_command = re.compile(r'#(.{2,12})#')
         self.re_emoji = re.compile(r'<span class="emoji emoji([0-9a-zA-Z]{2,10})"></span>')
         self.saveFolder = os.path.join(os.getcwd(), 'saved')
+        
 
     def loadWxConfig(self, webwx, config=None):
         if not webwx:
@@ -72,7 +73,7 @@ class WxRobot(object):
 
     def handleWxOriginMsg(self, webwx, r, selector='2'):
         for msg in r['AddMsgList']:
-            print('[*] 你有新的消息，请注意查收')
+            # print('[*] 你有新的消息，请注意查收')
             self.handleWxMsg(webwx, msg)
         pass
 
@@ -210,6 +211,8 @@ class WxRobot(object):
                 srcName = webwx.getUserRemarkName(people)
                 chat['from_id'] = people
                 chat['from_name'] = srcName
+                chat['to_id'] = ''
+                chat['to_name'] = ''
                 chat['msg_content'] = content
                 if people == webwx.User['UserName']:
                     if self.saveWxChat:
@@ -218,6 +221,7 @@ class WxRobot(object):
                 if content.startswith('@' + dstName):
                     content = content[(len(dstName) + 2):]
                     chat['msg_content'] = content
+                    chat['to_name'] = dstName
                     replyContent = '@' + srcName + '  ' + self.talk2Robot(content, srcName)
                     if webwx.webwxsendmsg(replyContent, fromUser):
                                 #logging.info('自动回复: ' + replyContent)
