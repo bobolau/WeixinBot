@@ -15,9 +15,6 @@ class WxDb(object):
     def getRobots(self):
         pass
 
-
-
-
     def getUnstartedWxRobot(self):
         sql = 'select * from robot_wx_hosting t ' \
               'where t.status=1 and (t.device_server is null or t.device_server=\'%s\') ' \
@@ -66,6 +63,11 @@ class WxDb(object):
 
         self.updateWxSync(webwx)
 
+    def loadLivingConfig(self, uin=None):
+        sql = "select * from robot_wx_living" \
+              " where (hosting_uin is null or hosting_uin='%s') and status=1" \
+              " order by living_num, living_type; " % (uin)
+        return self._dbFetchAll(sql)
 
     def updateWxUser(self, webwx, ignorCheck=False):
         pass

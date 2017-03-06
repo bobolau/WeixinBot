@@ -21,7 +21,7 @@ class WxRobot(object):
         self.re_command = re.compile(r'#(.{2,12})#')
         self.re_emoji = re.compile(r'<span class="emoji emoji([0-9a-zA-Z]{2,10})"></span>')
         self.saveFolder = os.path.join(os.getcwd(), 'saved')
-        
+
 
     def loadWxConfig(self, webwx, config=None):
         if not webwx:
@@ -185,9 +185,9 @@ class WxRobot(object):
 
         # group living
         if fromUser[:2] == '@@':
-            living_num = self._get_group_living(webwx, msg)
+            living_num = self._get_group_living(webwx, fromUser, srcName)
             if living_num:
-                self._process_group_living(webwx, msg)
+                self._process_group_living(webwx, msg, living_num)
                 return
 
         # auto reply message (robot)
@@ -244,48 +244,82 @@ class WxRobot(object):
             pass
         return
 
-    def _get_group_living(self, webwx, msg):
-        pass
+    def _get_group_living(self, webwx, roomId, roomName):
+        ## check and init living config
+        if not hasattr(webwx, 'group_living'):
+            group_living = []
+            data = self.wxdb.loadLivingConfig(webwx.uin)
+            if data:
+                living_num = ''
+                living_config = {}
+                for row in data:
+                    if not (living_num == row['living_num']):
+                        if row['living_type'] == '1': ##直播群
+                            living_num = row['living_num']
+                            living_config = row.copy()
+                            group_living.append(living_config)
+                        else:
+                            continue
+                    if row['living_type']=='2':  ##转播群
+                        if 'dest' not in living_config:
+                            living_config['dest'] = []
+                        living_config['dest'].append(row.copy())
+            setattr(webwx, 'group_living', group_living)
+        ## select living
+        for item in getattr(webwx, 'group_living'):
+            if roomId == item['room_id']:
+                return item['living_num']
+            if roomName == item['room_name']:  ##workaround
+                item['room_id'] = roomId
+                return item['living_num']
         return None
 
     def _process_group_living(self, webwx, msg, living_num=None):
+        destGroups = []
+        for item in getattr(webwx, 'group_living'):
+            if living_num == item['living_num']:
+                for dest in item['dest']:
+                   dest_id = dest['room_id']
+                   currentName = webwx.getGroupName(dest_id)
+                   if currentName == '未知群':
+                       dest_id = ''
+                       dest_name = dest['room_name']
+                       for member in webwx.GroupList:
+                           if member['NickName'] == dest_name:
+                               dest_id = member['UserName']
+                               dest['room_id'] = dest_id  ##update room_id
+                               break
+                       if '' not in (dest_id):
+                           destGroups.append(dest_id)
+
+        if len(destGroups)==0:
+            return
+
         msgType = msg['MsgType']
+        content = msg['Content'].replace('&lt;', '<').replace('&gt;', '>')
         fromUser = msg['FromUserName']
         srcName = webwx.getUserRemarkName(msg['FromUserName'])
-        content = msg['Content'].replace('&lt;', '<').replace('&gt;', '>')
         msgid = msg['MsgId']
-        # 3.check group live
-        if fromUser[:2] == '@@' and self.group_living.has_key(srcName):
-            toGroups = self.group_living.get(srcName)
-            if ":<br/>" in content:
-                [people, content] = content.split(':<br/>', 1)
-                groupName = srcName
-                srcName = webwx.getUserRemarkName(people)
-                replyContent = '[转]' + groupName + '->' + srcName + ':<br/>' + content
-            else:
-                groupName = srcName
-                replyContent = '[转]' + groupName + ':<br/>' + content
-            replyContent = self.formatMsg(replyContent, groupName + '->' + srcName)
-            for toGroup in re.split(r'[\s\,\;]+', toGroups):
-                toGroupId = webwx.getGroupId(toGroup)
-                if not toGroupId:
-                    continue
-                if msgType == 1:
-                    if webwx.webwxsendmsg(replyContent, toGroupId):
-                        logging.info('群转发: ' + replyContent)
-                    else:
-                        logging.info('群转发文字失败, group=' + toGroup + '(' + toGroupId + ')')
-                elif msgType == 3:
-                    image = webwx.webwxgetmsgimg(msgid)
-                    response = webwx.webwxuploadmedia(image)
-                    media_id = ""
-                    if response is not None:
-                        media_id = response['MediaId']
-                    if webwx.webwxsendmsgimg(toGroupId, media_id):
-                        logging.info('群转发图片成功')
-                    else:
-                        logging.info('群转发图片失败')
 
+        if ":<br/>" in content:
+            [people, content] = content.split(':<br/>', 1)
+            groupName = srcName
+            srcName = webwx.getUserRemarkName(people)
+            replyContent = '[转]' + groupName + '->' + srcName + ':<br/>' + content
+        else:
+            groupName = srcName
+            replyContent = '[转]' + groupName + ':<br/>' + content
+        ##replyContent = self.formatMsg(replyContent, groupName + '->' + srcName)
+        for toGroupId in destGroups:
+            if msgType == 1:
+                webwx.webwxsendmsg(replyContent, toGroupId)
+            elif msgType == 3:
+                image = webwx.webwxgetmsgimg(msgid)
+                response = webwx.webwxuploadmedia(image)
+                media_id = ""
+                if response is not None:
+                    media_id = response['MediaId']
+                webwx.webwxsendmsgimg(toGroupId, media_id)
 
     def talk2Robot(self, info, userid, myid='robot'):
         reply = self.robot_tuling(info, userid)
