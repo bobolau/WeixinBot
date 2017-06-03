@@ -897,6 +897,7 @@ class WebWeixin(object):
         self._run('[*] 进行同步线路测试 ... ', self.testsynccheck)
         playWeChat = 0
         redEnvelope = 0
+        retryCount = 10
         while True:
             self.lastCheckTs = time.time()
             [retcode, selector] = self.synccheck()
@@ -906,11 +907,15 @@ class WebWeixin(object):
             if retcode == '1100':
                 print('[*] 你在手机上登出了微信，再见%s' % (self.User['NickName']))
                 logging.debug('[*] 你在手机上登出了微信，再见%s' % (self.User['NickName']))
-                break
+                retryCount -= 1
+                if retryCount <= 0:
+                    break
             if retcode == '1101':
                 print('[*] 你在其他地方登录了 WEB 版微信，再见%s' % (self.User['NickName']))
                 logging.debug('[*] 你在其他地方登录了 WEB 版微信，再见%s' % (self.User['NickName']))
-                break
+                retryCount -= 1
+                if retryCount <= 0:
+                    break
             elif retcode == '0':
                 if selector == '2':
                     r = self.webwxsync()
