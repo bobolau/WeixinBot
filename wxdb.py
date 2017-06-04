@@ -8,6 +8,7 @@ import psycopg2
 import psycopg2.extras
 import psycopg2.pool
 
+
 class WxDb(object):
     def __init__(self):
         self.pool = self._createpool()
@@ -18,11 +19,11 @@ class WxDb(object):
     def getUnstartedWxRobot(self):
         sql = 'select * from robot_wx_hosting t ' \
               'where t.status=1 and (t.device_server is null or t.device_server=\'%s\') ' \
-              'order by t.device_server desc, t.priority desc;' %(self._getLocalServer())
+              'order by t.device_server desc, t.priority desc;' % (self._getLocalServer())
         return self._dbFetchAll(sql)
 
     def loadWxConfig(self, webwx, config):
-        if config and webwx.uin=='' and not config.get('wx_uin')=='':
+        if config and webwx.uin == '' and not config.get('wx_uin') == '':
             webwx.uin = config.get('wx_uin')
         data = self._loadWxLastSync(webwx.deviceId, webwx.uin)
         if data:
@@ -42,7 +43,7 @@ class WxDb(object):
         if config:
             sql = 'select * from robot_wx_hosting ' \
                   'where device_id=\'%s\' and (wx_uin is null or wx_uin=\'\' or wx_uin=\'%s\'); ' \
-                  %(webwx.deviceId, webwx.uin)
+                  % (webwx.deviceId, webwx.uin)
         else:
             sql = 'select * from robot_wx_hosting ' \
                   'where device_id=\'%s\' and uin=\'%s\' ;' \
@@ -58,7 +59,7 @@ class WxDb(object):
             sql = 'insert into robot_wx_hosting(account, type, device_server, device_id, wx_uin, wx_name' \
                   ', status, created_time, updated_time, remarks) ' \
                   'values(\'temp\',\'temp\',\'%s\', \'%s\', \'%s\', \'%s\', 1, current_timestamp, current_timestamp, \'%s\'); ' \
-                  %(self._getLocalServer(),webwx.deviceId, webwx.uin, webwx.User['NickName'], remarks)
+                  % (self._getLocalServer(), webwx.deviceId, webwx.uin, webwx.User['NickName'], remarks)
         self._dbExecuteSql(sql)
 
         self.updateWxSync(webwx)
@@ -82,7 +83,8 @@ class WxDb(object):
         if ignorCheck:
             sql = 'update wx_synckey set synckey=\'%s\', jsonsync=\'%s\', updated_time=current_timestamp ' \
                   'where device_id=\'%s\' and uin=\'%s\' and sid=\'%s\' and skey=\'%s\' and pass_ticket=\'%s\' ;' \
-                  % (webwx.synckey, json.dumps(webwx.SyncKey),webwx.deviceId, webwx.uin, webwx.sid, webwx.skey, webwx.pass_ticket)
+                  % (webwx.synckey, json.dumps(webwx.SyncKey), webwx.deviceId, webwx.uin, webwx.sid, webwx.skey,
+                     webwx.pass_ticket)
             return self._dbExecuteSql(sql)
 
         sql = 'select * from wx_synckey t ' \
@@ -102,10 +104,9 @@ class WxDb(object):
                      , webwx.uuid, webwx.base_uri, webwx.User['UserName'], webwx.synckey, json.dumps(webwx.SyncKey))
         return self._dbExecuteSql(sql)
 
-
     def saveWxMsg(self, uin, msgid, msg):
         sql = 'insert into wx_msg(uin, msgid, jsonmsg, updated_time) values(%s,%s,%s, current_timestamp);'
-        self._dbExecuteSql(sql,(uin, msgid, json.dumps(msg, indent=4, ensure_ascii=False)))
+        self._dbExecuteSql(sql, (uin, msgid, json.dumps(msg, indent=4, ensure_ascii=False)))
         pass
 
     def saveWxChat(self, chat):
@@ -116,10 +117,10 @@ class WxDb(object):
               ', %s, %s, %s, %s, %s, %s' \
               ', %s, %s, %s, %s, current_timestamp);'
         self._dbExecuteSql(sql, (chat['uin'], chat['type'], chat['msg_id'], chat['refer_id']
-                                 ,chat['from_id'],chat['from_name'],chat['to_id'],chat['to_name'],chat['room_id'],chat['room_name']
-                                 ,chat['msg_type'],chat['msg_content'],chat['msg_file'],chat['msg_other']))
+                                 , chat['from_id'], chat['from_name'], chat['to_id'], chat['to_name'], chat['room_id'],
+                                 chat['room_name']
+                                 , chat['msg_type'], chat['msg_content'], chat['msg_file'], chat['msg_other']))
         pass
-
 
     def _getLocalServer(self):
         serverName = socket.gethostname()
@@ -185,13 +186,16 @@ class WxDb(object):
         return self.pool.getconn()
 
     def _createpool(self):
-        pool = psycopg2.pool.ThreadedConnectionPool(2,10, database='postgres', user='postgres', password='open2018', host='112.124.35.123', port='5701')
+        pool = psycopg2.pool.ThreadedConnectionPool(2, 10, database='postgres', user='postgres', password='open2018',
+                                                    host='112.124.35.123', port='5701')
         return pool
+
 
 if __name__ == '__main__':
     logger = logging.getLogger(__name__)
     if not sys.platform.startswith('win'):
         import coloredlogs
+
         coloredlogs.install(level='DEBUG')
 
     wxdb = WxDb()
