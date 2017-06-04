@@ -11,4 +11,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY weixin.py /usr/src/app/
 COPY wxrobot.py /usr/src/app/
 COPY wxmgt.py /usr/src/app/
+COPY wxdb.py /usr/src/app/
 CMD ["python", "/usr/src/app/wxmgt.py"]
