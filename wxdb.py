@@ -10,6 +10,7 @@ import psycopg2.pool
 
 
 class WxDb(object):
+
     def __init__(self):
         self.pool = self._createpool()
 
@@ -46,7 +47,7 @@ class WxDb(object):
                   % (webwx.deviceId, webwx.uin)
         else:
             sql = 'select * from robot_wx_hosting ' \
-                  'where device_id=\'%s\' and uin=\'%s\' ;' \
+                  'where device_id=\'%s\' and wx_uin=\'%s\' ;' \
                   % (webwx.deviceId, webwx.uin)
         data = self._dbFetchOne(sql)
         if data:
