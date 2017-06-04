@@ -145,7 +145,7 @@ class WxRobot(object):
                 pm = re.search(regx, content)
                 if pm:
                     person1 = pm.group(1)
-                    person2 = pm.group(2)
+                    person2 = pm.group(2)  #TODO 可能同时邀请多人
                     replyContent = '欢迎%s(%s好友)加入 @%s' % (person2, person1, person2)
                     webwx.webwxsendmsg(replyContent, fromUser)
                     #record

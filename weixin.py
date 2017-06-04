@@ -897,7 +897,7 @@ class WebWeixin(object):
         self._run('[*] 进行同步线路测试 ... ', self.testsynccheck)
         playWeChat = 0
         redEnvelope = 0
-        retryCount = 10
+        retryCount = 5
         while True:
             self.lastCheckTs = time.time()
             [retcode, selector] = self.synccheck()
@@ -905,15 +905,15 @@ class WebWeixin(object):
                 print('retcode: %s, selector: %s' % (retcode, selector))
             logging.debug('retcode: %s, selector: %s' % (retcode, selector))
             if retcode == '1100':
-                print('[*] 你在手机上登出了微信，再见%s' % (self.User['NickName']))
-                logging.debug('[*] 你在手机上登出了微信，再见%s' % (self.User['NickName']))
-                retryCount -= 1
+                print('[*] 你在手机上登出了微信，再见%s (retry count = %s)' % (self.User['NickName'], retryCount))
+                logging.debug('[*] 你在手机上登出了微信，再见%s (retry count = %s)' % (self.User['NickName'], retryCount))
+                retryCount = retryCount - 1
                 if retryCount <= 0:
                     break
             if retcode == '1101':
-                print('[*] 你在其他地方登录了 WEB 版微信，再见%s' % (self.User['NickName']))
-                logging.debug('[*] 你在其他地方登录了 WEB 版微信，再见%s' % (self.User['NickName']))
-                retryCount -= 1
+                print('[*] 你在其他地方登录了 WEB 版微信，再见%s (retry count = %s)' % (self.User['NickName'], retryCount))
+                logging.debug('[*] 你在其他地方登录了 WEB 版微信，再见%s (retry count = %s)' % (self.User['NickName'], retryCount))
+                retryCount = retryCount - 1
                 if retryCount <= 0:
                     break
             elif retcode == '0':
